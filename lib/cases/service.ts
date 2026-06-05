@@ -4,6 +4,7 @@ import { generateCaseReference } from "./reference"
 import { transition, TransitionContext } from "@/lib/state-machine/transitions"
 import { getInitialRoute } from "@/lib/state-machine/routing"
 import { AuthError } from "@/lib/state-machine/guards"
+import { validateSubmissionDocuments } from "@/lib/documents/service"
 
 export interface CreateCaseInput {
   type: CaseType
@@ -114,6 +115,12 @@ export async function submitCase(
 
   if (caseRecord.status !== CaseStatus.DRAFT) {
     throw new AuthError("INVALID_OPERATION", "Can only submit DRAFT cases")
+  }
+
+  const formData = (caseRecord.form_data as Record<string, unknown>) ?? {}
+  const { valid, missing } = await validateSubmissionDocuments(caseId, caseRecord.type, formData)
+  if (!valid) {
+    throw new AuthError("DOCUMENT_REQUIRED", `Missing required documents: ${missing.join(", ")}`)
   }
 
   // Transition to SUBMITTED
