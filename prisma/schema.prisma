@@ -15,6 +15,81 @@ enum Role {
   ADMIN
 }
 
+enum CaseType {
+  MEMBER_ENROLMENT
+  BENEFICIARY_NOMINATION
+  AVC
+  BENEFITS_CLAIM
+  DEATH_BENEFITS_CLAIM
+  MISSING_CONTRIBUTION
+  DISCREPANCY
+}
+
+enum CaseStatus {
+  DRAFT
+  SUBMITTED
+  PENDING_EMPLOYER
+  EMPLOYER_APPROVED
+  EMPLOYER_REJECTED
+  UNDER_REVIEW
+  MORE_INFO_REQUIRED
+  UNDER_VERIFICATION
+  AWAITING_TRUSTEE
+  APPROVED
+  PAYMENT_PROCESSING
+  COMPLETED
+  REJECTED
+  CLOSED
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REASSIGNED
+}
+
+enum ApprovalType {
+  EMPLOYER
+  PSSF
+  TRUSTEE
+}
+
+enum ApprovalDecision {
+  APPROVED
+  REJECTED
+  REQUEST_CORRECTION
+  REQUEST_MORE_INFO
+}
+
+enum AVCAction {
+  NEW
+  VARY
+  CANCEL
+}
+
+enum AVCMethod {
+  PAYROLL
+  MOBILE_WALLET
+}
+
+enum BenefitOption {
+  LUMPSUM_THIRD_ANNUITY
+  LUMPSUM_THIRD_DRAWDOWN
+  FULL_ANNUITY
+  FULL_DRAWDOWN
+  FULL_LUMPSUM_TRIVIAL
+}
+
+enum DeathBenefitOption {
+  LUMPSUM_THIRD_ANNUITY
+  LUMPSUM_THIRD_DRAWDOWN
+  FULL_ANNUITY
+  FULL_DRAWDOWN
+  TRUST_FUND_MINORS
+  FULL_LUMPSUM
+}
+
 model User {
   id             String       @id @default(uuid())
   email          String?      @unique
@@ -29,6 +104,11 @@ model User {
 
   sessions       Session[]
   otp_requests   OtpRequest[]
+  member         Member?
+  employer_officer EmployerOfficer?
+  case_notes     CaseNote[]
+  audit_events   AuditEvent[]
+  approvals      Approval[]
 
   @@map("users")
 }
@@ -61,4 +141,219 @@ model OtpRequest {
   @@index([phone])
   @@index([email])
   @@map("otp_requests")
+}
+
+model Member {
+  id                    String    @id @default(uuid())
+  user_id               String    @unique
+  national_id           String    @unique
+  full_name             String
+  date_of_birth         DateTime
+  kra_pin               String?
+  member_number         String?   @unique
+  personal_number       String?
+  employer_id           String?
+  employer_name         String?
+  date_of_employment    DateTime?
+  date_joined_scheme    DateTime?
+  mobile_number         String?
+  email                 String?
+  postal_address        String?
+  postal_code           String?
+  town                  String?
+  is_verified           Boolean   @default(false)
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  user                  User      @relation(fields: [user_id], references: [id])
+  employer              Employer? @relation(fields: [employer_id], references: [id])
+  cases                 Case[]
+  beneficiaries         Beneficiary[]
+
+  @@index([national_id])
+  @@index([member_number])
+  @@map("members")
+}
+
+model Employer {
+  id           String            @id @default(uuid())
+  name         String
+  code         String            @unique
+  is_active    Boolean           @default(true)
+  created_at   DateTime          @default(now())
+  updated_at   DateTime          @updatedAt
+
+  officers     EmployerOfficer[]
+  members      Member[]
+  cases        Case[]            @relation("EmployerCases")
+
+  @@map("employers")
+}
+
+model EmployerOfficer {
+  id           String   @id @default(uuid())
+  user_id      String   @unique
+  employer_id  String
+  full_name    String
+  designation  String?
+  is_active    Boolean  @default(true)
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  user         User     @relation(fields: [user_id], references: [id])
+  employer     Employer @relation(fields: [employer_id], references: [id])
+
+  @@map("employer_officers")
+}
+
+model Case {
+  id               String     @id @default(uuid())
+  reference        String     @unique
+  type             CaseType
+  status           CaseStatus @default(DRAFT)
+  member_id        String?
+  claimant_name    String?
+  employer_id      String?
+  assigned_to      String?
+  form_data        Json
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+  submitted_at     DateTime?
+  completed_at     DateTime?
+  deleted_at       DateTime?
+
+  member           Member?         @relation(fields: [member_id], references: [id])
+  employer         Employer?       @relation("EmployerCases", fields: [employer_id], references: [id])
+  status_history   CaseStatusHistory[]
+  tasks            Task[]
+  approvals        Approval[]
+  beneficiaries    Beneficiary[]
+  audit_events     AuditEvent[]
+  notes            CaseNote[]
+
+  @@index([member_id])
+  @@index([employer_id])
+  @@index([status])
+  @@index([type])
+  @@index([assigned_to])
+  @@map("cases")
+}
+
+model CaseStatusHistory {
+  id           String     @id @default(uuid())
+  case_id      String
+  from_status  CaseStatus?
+  to_status    CaseStatus
+  changed_by   String?
+  reason       String?
+  created_at   DateTime   @default(now())
+
+  case         Case       @relation(fields: [case_id], references: [id])
+
+  @@index([case_id])
+  @@map("case_status_history")
+}
+
+model CaseNote {
+  id         String   @id @default(uuid())
+  case_id    String
+  author_id  String
+  content    String
+  is_internal Boolean @default(true)
+  created_at DateTime @default(now())
+
+  case       Case     @relation(fields: [case_id], references: [id])
+  author     User     @relation(fields: [author_id], references: [id])
+
+  @@index([case_id])
+  @@map("case_notes")
+}
+
+model Task {
+  id            String     @id @default(uuid())
+  case_id       String
+  task_type     String
+  assigned_to   String?
+  assigned_role Role?
+  status        TaskStatus @default(PENDING)
+  due_at        DateTime?
+  created_at    DateTime   @default(now())
+  updated_at    DateTime   @updatedAt
+  completed_at  DateTime?
+
+  case          Case       @relation(fields: [case_id], references: [id])
+
+  @@index([case_id])
+  @@index([assigned_to])
+  @@index([status])
+  @@map("tasks")
+}
+
+model Approval {
+  id           String           @id @default(uuid())
+  case_id      String
+  type         ApprovalType
+  decision     ApprovalDecision
+  actor_id     String?
+  actor_name   String
+  actor_role   String
+  actor_org    String?
+  reason       String?
+  comments     String?
+  digital_ref  String?
+  created_at   DateTime         @default(now())
+
+  case         Case             @relation(fields: [case_id], references: [id])
+  actor        User?            @relation(fields: [actor_id], references: [id])
+
+  @@index([case_id])
+  @@map("approvals")
+}
+
+model Beneficiary {
+  id                    String   @id @default(uuid())
+  case_id               String
+  member_id             String?
+  surname               String
+  first_name            String
+  middle_name           String?
+  relationship          String
+  national_id           String?
+  birth_cert_number     String?
+  date_of_birth         DateTime?
+  mobile_number         String?
+  allocation_percent    Decimal
+  is_minor              Boolean  @default(false)
+  guardian_name         String?
+  guardian_relationship String?
+  guardian_address      String?
+  guardian_mobile       String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  case                  Case     @relation(fields: [case_id], references: [id])
+  member                Member?  @relation(fields: [member_id], references: [id])
+
+  @@index([case_id])
+  @@map("beneficiaries")
+}
+
+model AuditEvent {
+  id           String     @id @default(uuid())
+  case_id      String?
+  action       String
+  actor_id     String?
+  actor_role   String?
+  from_status  CaseStatus?
+  to_status    CaseStatus?
+  metadata     Json?
+  ip_address   String?
+  created_at   DateTime   @default(now())
+
+  case         Case?      @relation(fields: [case_id], references: [id])
+  actor        User?      @relation(fields: [actor_id], references: [id])
+
+  @@index([case_id])
+  @@index([created_at])
+  @@map("audit_events")
 }
