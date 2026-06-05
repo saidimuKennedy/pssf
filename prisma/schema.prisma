@@ -5,3 +5,60 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  MEMBER
+  CLAIMANT
+  EMPLOYER
+  PSSF_OFFICER
+  PSSF_SUPERVISOR
+  ADMIN
+}
+
+model User {
+  id             String       @id @default(uuid())
+  email          String?      @unique
+  phone          String?      @unique
+  password_hash  String?
+  role           Role
+  is_active      Boolean      @default(true)
+  last_login_at  DateTime?
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @updatedAt
+  deleted_at     DateTime?
+
+  sessions       Session[]
+  otp_requests   OtpRequest[]
+
+  @@map("users")
+}
+
+model Session {
+  id         String   @id @default(uuid())
+  user_id    String
+  token      String   @unique
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [user_id], references: [id])
+
+  @@map("sessions")
+}
+
+model OtpRequest {
+  id         String    @id @default(uuid())
+  user_id    String?
+  phone      String?
+  email      String?
+  code       String
+  attempts   Int       @default(0)
+  verified   Boolean   @default(false)
+  expires_at DateTime
+  created_at DateTime  @default(now())
+
+  user       User?     @relation(fields: [user_id], references: [id])
+
+  @@index([phone])
+  @@index([email])
+  @@map("otp_requests")
+}
