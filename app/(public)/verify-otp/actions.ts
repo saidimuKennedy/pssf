@@ -11,18 +11,27 @@ function generateOtp(): string {
 }
 
 async function dispatchOtp(identifier: string, code: string, isEmail: boolean): Promise<void> {
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.PSSF_MOCK_NOTIFICATIONS === "true") {
     console.log(`[MOCK OTP resend] ${isEmail ? "email" : "phone"}=${identifier} code=${code}`)
     return
   }
-  await fetch(`${process.env.CHATNATION_CRM_URL}/api/otp/send`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.CHATNATION_CRM_API_KEY}`,
-    },
-    body: JSON.stringify({ [isEmail ? "email" : "phone"]: identifier, code }),
-  })
+  if (isEmail) {
+    const { Resend } = await import("resend")
+    const resend = new Resend(process.env.RESEND_API_KEY)
+    await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL ?? "noreply@pssf.go.ke",
+      to: identifier,
+      subject: "Your PSSF Verification Code",
+      html: `<p>Your PSSF verification code is <strong>${code}</strong>. It expires in 5 minutes. Do not share this code with anyone.</p>`,
+    })
+  } else {
+    const { sendWhatsApp } = await import("@/lib/notifications/channels/whatsapp")
+    await sendWhatsApp({
+      recipient_phone: identifier,
+      template_ref: "tpl_otp_wa",
+      variables: { otp_code: code },
+    })
+  }
 }
 
 export async function resendOtpAction(prevState: unknown, formData: FormData) {

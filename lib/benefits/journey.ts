@@ -1,4 +1,8 @@
-import { RETIREMENT_REASONS } from "@/lib/validations/benefits"
+const RETIREMENT_REASONS = new Set([
+  "NORMAL_RETIREMENT",
+  "EARLY_RETIREMENT",
+  "RULE_12_16_20",
+])
 
 export const BENEFITS_STEPS = [
   "Identity",

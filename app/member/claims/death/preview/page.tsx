@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { StepIndicator } from "@/components/ui/step-indicator"
 import { Button } from "@/components/ui/button"
 import { DEATH_STEPS, DEATH_OPTION_TEXT } from "@/lib/death-benefits/journey"
-import { DeathBenefitOption } from "@prisma/client"
 import type { DeathClaimant } from "@/lib/validations/death-benefits"
 
 export default function DeathPreviewPage() {
@@ -18,7 +17,7 @@ export default function DeathPreviewPage() {
   }, [caseId])
 
   if (!caseId) return null
-  const opt = fd.benefit_option as DeathBenefitOption | undefined
+  const opt = fd.benefit_option as string | undefined
   const claimants = (fd.claimants as DeathClaimant[]) ?? []
   return (
     <div className="max-w-xl mx-auto space-y-8">

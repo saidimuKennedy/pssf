@@ -1,11 +1,17 @@
 import { z } from "zod"
-import { DeathBenefitOption } from "@prisma/client"
 
 const kenyanPhone = z
   .string()
   .regex(/^\+254[17]\d{8}$/, "Phone must be a Kenyan number starting with +254")
 
-export const DeathBenefitOptionSchema = z.nativeEnum(DeathBenefitOption)
+export const DeathBenefitOptionSchema = z.enum([
+  "LUMPSUM_THIRD_ANNUITY",
+  "LUMPSUM_THIRD_DRAWDOWN",
+  "FULL_ANNUITY",
+  "FULL_DRAWDOWN",
+  "TRUST_FUND_MINORS",
+  "FULL_LUMPSUM",
+])
 
 export const DeathClaimantSchema = z
   .object({

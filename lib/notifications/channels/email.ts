@@ -3,9 +3,13 @@ import { render } from "@react-email/render"
 import { Resend } from "resend"
 import { resolveEmailSubject } from "@/lib/notifications/templates"
 import PendingEmployerEmail from "@/emails/pending-employer"
+import EmployerApprovedEmail from "@/emails/employer-approved"
 import EmployerRejectedEmail from "@/emails/employer-rejected"
+import MoreInfoRequiredEmail from "@/emails/more-info-required"
 import CaseApprovedEmail from "@/emails/case-approved"
 import CaseRejectedEmail from "@/emails/case-rejected"
+import PaymentProcessingEmail from "@/emails/payment-processing"
+import CaseCompletedEmail from "@/emails/case-completed"
 import TaskOverdueEmail from "@/emails/task-overdue"
 import WelcomeEmail from "@/emails/welcome"
 
@@ -13,9 +17,13 @@ type EmailComponent = React.ComponentType<{ variables: Record<string, string> }>
 
 const EMAIL_COMPONENTS: Record<string, EmailComponent> = {
   tpl_pending_employer_email: PendingEmployerEmail,
+  tpl_employer_approved_email: EmployerApprovedEmail,
   tpl_employer_rejected_email: EmployerRejectedEmail,
+  tpl_more_info_required_email: MoreInfoRequiredEmail,
   tpl_approved_email: CaseApprovedEmail,
   tpl_rejected_email: CaseRejectedEmail,
+  tpl_payment_processing_email: PaymentProcessingEmail,
+  tpl_case_completed_email: CaseCompletedEmail,
   tpl_task_overdue_email: TaskOverdueEmail,
   tpl_welcome_email: WelcomeEmail,
   tpl_statement_email: WelcomeEmail,
@@ -28,7 +36,7 @@ export interface EmailOptions {
 }
 
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.PSSF_MOCK_NOTIFICATIONS === "true") {
     console.log("[MOCK Email]", JSON.stringify({ to: options.to, template_ref: options.template_ref, variables: options.variables }, null, 2))
     return
   }

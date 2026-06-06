@@ -1,5 +1,4 @@
 import { z } from "zod"
-import { AVCAction, AVCMethod } from "@prisma/client"
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format")
 const positiveAmount = z.number().positive("Amount must be greater than zero")
@@ -8,25 +7,27 @@ const kenyanPhone = z
   .string()
   .regex(/^\+254[17]\d{8}$/, "Phone must be a Kenyan number starting with +254")
 
+const AVCMethodSchema = z.enum(["PAYROLL", "MOBILE_WALLET"])
+
 export const PayrollMethodSchema = z.object({
-  avc_method: z.literal(AVCMethod.PAYROLL),
+  avc_method: z.literal("PAYROLL"),
 })
 
 export const MobileWalletMethodSchema = z.object({
-  avc_method: z.literal(AVCMethod.MOBILE_WALLET),
+  avc_method: z.literal("MOBILE_WALLET"),
   mobile_wallet_number: kenyanPhone,
 })
 
 export const NewAVCSchema = z
   .object({
-    avc_action: z.literal(AVCAction.NEW),
+    avc_action: z.literal("NEW"),
     new_amount: positiveAmount,
     commencement_date: isoDate,
-    avc_method: z.nativeEnum(AVCMethod),
+    avc_method: AVCMethodSchema,
     mobile_wallet_number: kenyanPhone.optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.avc_method === AVCMethod.MOBILE_WALLET && !data.mobile_wallet_number) {
+    if (data.avc_method === "MOBILE_WALLET" && !data.mobile_wallet_number) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Mobile wallet number is required",
@@ -37,15 +38,15 @@ export const NewAVCSchema = z
 
 export const VaryAVCSchema = z
   .object({
-    avc_action: z.literal(AVCAction.VARY),
+    avc_action: z.literal("VARY"),
     current_amount: positiveAmount,
     new_amount: positiveAmount,
     effective_date: isoDate,
-    avc_method: z.nativeEnum(AVCMethod),
+    avc_method: AVCMethodSchema,
     mobile_wallet_number: kenyanPhone.optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.avc_method === AVCMethod.MOBILE_WALLET && !data.mobile_wallet_number) {
+    if (data.avc_method === "MOBILE_WALLET" && !data.mobile_wallet_number) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Mobile wallet number is required",
@@ -56,14 +57,14 @@ export const VaryAVCSchema = z
 
 export const CancelAVCSchema = z
   .object({
-    avc_action: z.literal(AVCAction.CANCEL),
+    avc_action: z.literal("CANCEL"),
     current_amount: positiveAmount.optional(),
     effective_date: isoDate,
-    avc_method: z.nativeEnum(AVCMethod),
+    avc_method: AVCMethodSchema,
     mobile_wallet_number: kenyanPhone.optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.avc_method === AVCMethod.MOBILE_WALLET && !data.mobile_wallet_number) {
+    if (data.avc_method === "MOBILE_WALLET" && !data.mobile_wallet_number) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Mobile wallet number is required",

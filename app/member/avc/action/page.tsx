@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { AVCAction, AVCMethod } from "@prisma/client"
 import { StepIndicator } from "@/components/ui/step-indicator"
 import { LockedField } from "@/components/ui/locked-field"
 import { Button } from "@/components/ui/button"
@@ -18,13 +17,16 @@ import {
   CancelAVCSchema,
 } from "@/lib/validations/avc"
 
+type AvcAction = "NEW" | "VARY" | "CANCEL"
+type AvcMethod = "PAYROLL" | "MOBILE_WALLET"
+
 export default function AVCActionPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const caseId = searchParams.get("case_id")
 
-  const [avcAction, setAvcAction] = useState<AVCAction | null>(null)
-  const [avcMethod, setAvcMethod] = useState<AVCMethod>(AVCMethod.PAYROLL)
+  const [avcAction, setAvcAction] = useState<AvcAction | null>(null)
+  const [avcMethod, setAvcMethod] = useState<AvcMethod>("PAYROLL")
   const [newAmount, setNewAmount] = useState("")
   const [currentAmount, setCurrentAmount] = useState("")
   const [commencementDate, setCommencementDate] = useState("")
@@ -40,8 +42,8 @@ export default function AVCActionPage() {
       .then((r) => r.json())
       .then((data) => {
         const fd = data.form_data as Record<string, unknown>
-        setAvcAction(fd.avc_action as AVCAction)
-        if (fd.avc_method) setAvcMethod(fd.avc_method as AVCMethod)
+        setAvcAction(fd.avc_action as AvcAction)
+        if (fd.avc_method) setAvcMethod(fd.avc_method as AvcMethod)
         if (fd.new_amount) setNewAmount(String(fd.new_amount))
         if (fd.current_amount) {
           setCurrentAmount(String(fd.current_amount))
@@ -78,20 +80,20 @@ export default function AVCActionPage() {
         avc_action: avcAction,
         avc_method: avcMethod,
         mobile_wallet_number:
-          avcMethod === AVCMethod.MOBILE_WALLET ? mobileWalletNumber : undefined,
+          avcMethod === "MOBILE_WALLET" ? mobileWalletNumber : undefined,
       }
 
       let payload: Record<string, unknown>
       let parsed
 
-      if (avcAction === AVCAction.NEW) {
+      if (avcAction === "NEW") {
         payload = {
           ...base,
           new_amount: parseFloat(newAmount),
           commencement_date: commencementDate,
         }
         parsed = NewAVCSchema.safeParse(payload)
-      } else if (avcAction === AVCAction.VARY) {
+      } else if (avcAction === "VARY") {
         payload = {
           ...base,
           current_amount: knownCurrentAmount ?? parseFloat(currentAmount),
@@ -152,7 +154,7 @@ export default function AVCActionPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {avcAction === AVCAction.NEW && (
+        {avcAction === "NEW" && (
           <div className="space-y-4">
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               You are applying to commence additional voluntary contributions. Enter the monthly
@@ -180,7 +182,7 @@ export default function AVCActionPage() {
           </div>
         )}
 
-        {avcAction === AVCAction.VARY && (
+        {avcAction === "VARY" && (
           <div className="space-y-4">
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
               You are applying to vary your existing AVC amount. Enter your current and new
@@ -224,7 +226,7 @@ export default function AVCActionPage() {
           </div>
         )}
 
-        {avcAction === AVCAction.CANCEL && (
+        {avcAction === "CANCEL" && (
           <div className="space-y-4">
             <Alert className="border-amber-200 bg-amber-50">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
@@ -258,12 +260,12 @@ export default function AVCActionPage() {
           <Label>Contribution Method <span className="text-red-500">*</span></Label>
           <RadioGroup
             value={avcMethod}
-            onValueChange={(v) => setAvcMethod(v as AVCMethod)}
+            onValueChange={(v) => setAvcMethod(v as AvcMethod)}
             className="space-y-3"
           >
             <div className="rounded-lg border border-gray-200 p-4">
               <div className="flex items-center gap-2">
-                <RadioGroupItem value={AVCMethod.PAYROLL} id="payroll" />
+                <RadioGroupItem value="PAYROLL" id="payroll" />
                 <Label htmlFor="payroll" className="font-medium cursor-pointer">
                   Payroll Check-off
                 </Label>
@@ -274,7 +276,7 @@ export default function AVCActionPage() {
             </div>
             <div className="rounded-lg border border-gray-200 p-4">
               <div className="flex items-center gap-2">
-                <RadioGroupItem value={AVCMethod.MOBILE_WALLET} id="wallet" />
+                <RadioGroupItem value="MOBILE_WALLET" id="wallet" />
                 <Label htmlFor="wallet" className="font-medium cursor-pointer">
                   Mobile Wallet
                 </Label>
@@ -286,7 +288,7 @@ export default function AVCActionPage() {
           </RadioGroup>
         </div>
 
-        {avcMethod === AVCMethod.MOBILE_WALLET && (
+        {avcMethod === "MOBILE_WALLET" && (
           <div className="space-y-1">
             <Label>M-Pesa Number <span className="text-red-500">*</span></Label>
             <Input

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { AVCAction } from "@prisma/client"
 import { TrendingUp, RefreshCw, XCircle } from "lucide-react"
 import { StepIndicator } from "@/components/ui/step-indicator"
 import { Button } from "@/components/ui/button"
@@ -25,10 +24,12 @@ const Schema = z.object({
 })
 type FormValues = z.infer<typeof Schema>
 
-const ACTIONS: { action: AVCAction; icon: typeof TrendingUp; color: string }[] = [
-  { action: AVCAction.NEW, icon: TrendingUp, color: "#16A34A" },
-  { action: AVCAction.VARY, icon: RefreshCw, color: "#2563EB" },
-  { action: AVCAction.CANCEL, icon: XCircle, color: "#D97706" },
+type AvcAction = "NEW" | "VARY" | "CANCEL"
+
+const ACTIONS: { action: AvcAction; icon: typeof TrendingUp; color: string }[] = [
+  { action: "NEW", icon: TrendingUp, color: "#16A34A" },
+  { action: "VARY", icon: RefreshCw, color: "#2563EB" },
+  { action: "CANCEL", icon: XCircle, color: "#D97706" },
 ]
 
 export default function AVCStep1Page() {
@@ -37,7 +38,7 @@ export default function AVCStep1Page() {
   const [loading, setLoading] = useState(false)
   const [validated, setValidated] = useState(false)
   const [prefill, setPrefill] = useState<Record<string, unknown> | null>(null)
-  const [creating, setCreating] = useState<AVCAction | null>(null)
+  const [creating, setCreating] = useState<AvcAction | null>(null)
 
   const {
     register,
@@ -71,7 +72,7 @@ export default function AVCStep1Page() {
     }
   }
 
-  async function selectAction(action: AVCAction) {
+  async function selectAction(action: AvcAction) {
     if (!prefill) return
     setCreating(action)
     setApiError(null)

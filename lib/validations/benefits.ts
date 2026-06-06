@@ -1,5 +1,12 @@
 import { z } from "zod"
-import { BenefitOption } from "@prisma/client"
+
+const BENEFIT_OPTION_VALUES = [
+  "LUMPSUM_THIRD_ANNUITY",
+  "LUMPSUM_THIRD_DRAWDOWN",
+  "FULL_ANNUITY",
+  "FULL_DRAWDOWN",
+  "FULL_LUMPSUM_TRIVIAL",
+] as const
 
 const kenyanPhone = z
   .string()
@@ -15,7 +22,7 @@ export const LeavingReasonSchema = z.enum([
   "OTHER",
 ])
 
-export const BenefitOptionSchema = z.nativeEnum(BenefitOption)
+export const BenefitOptionSchema = z.enum(BENEFIT_OPTION_VALUES)
 
 export const RETIREMENT_REASONS = new Set([
   "NORMAL_RETIREMENT",

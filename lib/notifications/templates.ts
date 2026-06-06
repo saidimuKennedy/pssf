@@ -70,6 +70,11 @@ const WHATSAPP_TEMPLATES: Record<string, (vars: Variables) => string> = {
       "Your PSSF [case_type_label] (Ref: [case_reference]) has been confirmed by your employer. It is now under PSSF review. We will notify you when there is an update.",
       v
     ),
+  tpl_employer_rejected_wa: (v) =>
+    sub(
+      "Your PSSF [case_type_label] (Ref: [case_reference]) could not be confirmed by your employer. Reason: [rejection_reason]. Please log in to the PSSF portal for guidance.",
+      v
+    ),
   tpl_more_info_required_wa: (v) =>
     sub(
       "PSSF requires more information for your [case_type_label] (Ref: [case_reference]). Please log in to the PSSF portal to provide the requested details.",
@@ -78,6 +83,11 @@ const WHATSAPP_TEMPLATES: Record<string, (vars: Variables) => string> = {
   tpl_case_approved_wa: (v) =>
     sub(
       "Good news! Your PSSF [case_type_label] (Ref: [case_reference]) has been approved. You will receive further updates on next steps.",
+      v
+    ),
+  tpl_case_rejected_wa: (v) =>
+    sub(
+      "Your PSSF [case_type_label] (Ref: [case_reference]) has been rejected. Reason: [rejection_reason]. Please contact PSSF for further guidance.",
       v
     ),
   tpl_payment_processing_wa: (v) =>
@@ -92,7 +102,12 @@ const WHATSAPP_TEMPLATES: Record<string, (vars: Variables) => string> = {
     ),
   tpl_otp_wa: (v) =>
     sub(
-      "Your PSSF verification code is [otp_code]. It expires in [expires_in_minutes] minutes. Do not share this code with anyone.",
+      "Your PSSF verification code is [otp_code]. It expires in 5 minutes. Do not share this code with anyone.",
+      v
+    ),
+  tpl_statement_wa: (v) =>
+    sub(
+      "Hello [full_name], your PSSF contribution statement for [period_from] to [period_to] is ready. Your total balance is [total_balance]. Log in to the PSSF portal to view the full statement.",
       v
     ),
 }
@@ -100,12 +115,20 @@ const WHATSAPP_TEMPLATES: Record<string, (vars: Variables) => string> = {
 const EMAIL_SUBJECTS: Record<string, (vars: Variables) => string> = {
   tpl_pending_employer_email: (v) =>
     sub("Action Required — [case_type_label] Confirmation for [member_name]", v),
+  tpl_employer_approved_email: (v) =>
+    sub("Employer Confirmed — Your [case_type_label] Is Under PSSF Review (Ref: [case_reference])", v),
   tpl_employer_rejected_email: (v) =>
     sub("Update on Your [case_type_label] — Ref: [case_reference]", v),
+  tpl_more_info_required_email: (v) =>
+    sub("Action Required — Additional Information Needed for [case_type_label] (Ref: [case_reference])", v),
   tpl_approved_email: (v) =>
     sub("Your [case_type_label] Has Been Approved — Ref: [case_reference]", v),
   tpl_rejected_email: (v) =>
     sub("Update on Your [case_type_label] — Ref: [case_reference]", v),
+  tpl_payment_processing_email: (v) =>
+    sub("Payment Processing — [case_type_label] Ref: [case_reference]", v),
+  tpl_case_completed_email: (v) =>
+    sub("Your [case_type_label] Is Complete — Ref: [case_reference]", v),
   tpl_task_overdue_email: (v) =>
     sub("Reminder — Pending Action Required for [member_name]", v),
   tpl_welcome_email: () => "Welcome to PSSF Portal",
@@ -138,4 +161,110 @@ export function resolveMessage(
   if (channel === "PORTAL") return resolvePortalMessage(templateRef, variables)
   if (channel === "WHATSAPP") return resolveWhatsAppMessage(templateRef, variables)
   return resolveEmailSubject(templateRef, variables)
+}
+
+// ---------------------------------------------------------------------------
+// Meta WhatsApp Cloud API template definitions
+// Each entry maps an internal template_ref to the approved Meta template name
+// and a components builder that produces the parameters array for the API call.
+// Template names must match exactly what is registered in the CRM template manager.
+// ---------------------------------------------------------------------------
+
+interface MetaTextParam {
+  type: "text"
+  text: string
+}
+
+interface MetaBodyComponent {
+  type: "body"
+  parameters: MetaTextParam[]
+}
+
+interface MetaButtonComponent {
+  type: "button"
+  sub_type: "url" | "copy_code"
+  index: string
+  parameters: MetaTextParam[]
+}
+
+type MetaComponent = MetaBodyComponent | MetaButtonComponent
+
+interface MetaTemplateEntry {
+  name: string
+  language: string
+  components: (vars: Variables) => MetaComponent[]
+}
+
+export const WA_META_TEMPLATES: Record<string, MetaTemplateEntry> = {
+  // AUTHENTICATION — copy-code button; {{1}} = OTP code
+  tpl_otp_wa: {
+    name: "pssf_otp",
+    language: "en",
+    components: (v) => [
+      { type: "body", parameters: [{ type: "text", text: v.otp_code ?? "" }] },
+      { type: "button", sub_type: "copy_code", index: "0", parameters: [{ type: "text", text: v.otp_code ?? "" }] },
+    ],
+  },
+  // UTILITY notifications — single body parameter = pre-resolved message text
+  tpl_employer_approved_wa: {
+    name: "pssf_employer_approved",
+    language: "en",
+    components: (v) => [
+      { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
+    ],
+  },
+  tpl_employer_rejected_wa: {
+    name: "pssf_employer_rejected",
+    language: "en",
+    components: (v) => [
+      { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }, { type: "text", text: v.rejection_reason ?? "" }] },
+    ],
+  },
+  tpl_more_info_required_wa: {
+    name: "pssf_more_info_required",
+    language: "en",
+    components: (v) => [
+      { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
+    ],
+  },
+  tpl_case_approved_wa: {
+    name: "pssf_case_approved",
+    language: "en",
+    components: (v) => [
+      { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
+    ],
+  },
+  tpl_case_rejected_wa: {
+    name: "pssf_case_rejected",
+    language: "en",
+    components: (v) => [
+      { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }, { type: "text", text: v.rejection_reason ?? "" }] },
+    ],
+  },
+  tpl_payment_processing_wa: {
+    name: "pssf_payment_processing",
+    language: "en",
+    components: (v) => [
+      { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
+    ],
+  },
+  tpl_case_completed_wa: {
+    name: "pssf_case_completed",
+    language: "en",
+    components: (v) => [
+      { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
+    ],
+  },
+  tpl_statement_wa: {
+    name: "pssf_statement",
+    language: "en",
+    components: (v) => [
+      { type: "body", parameters: [
+        { type: "text", text: v.full_name ?? "" },
+        { type: "text", text: v.period_from ?? "" },
+        { type: "text", text: v.period_to ?? "" },
+        { type: "text", text: v.total_balance ?? "" },
+      ]},
+    ],
+  },
 }

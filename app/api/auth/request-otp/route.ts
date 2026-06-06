@@ -2,27 +2,13 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/db"
 import { RequestOtpSchema } from "@/lib/validations/auth"
 import { hashOtp } from "@/auth"
+import { sendWhatsApp } from "@/lib/notifications/channels/whatsapp"
 
 const OTP_EXPIRY_SECONDS = 300
 const MAX_REQUESTS_PER_HOUR = 5
 
 function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
-}
-
-async function dispatchOtp(phone: string, code: string): Promise<void> {
-  if (process.env.NODE_ENV === "development") {
-    console.log(`[MOCK WhatsApp OTP] phone=${phone} code=${code}`)
-    return
-  }
-  await fetch(`${process.env.CHATNATION_CRM_URL}/api/otp/send`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.CHATNATION_CRM_API_KEY}`,
-    },
-    body: JSON.stringify({ phone, code }),
-  })
 }
 
 export async function POST(req: NextRequest) {
@@ -63,7 +49,11 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  await dispatchOtp(phone, code)
+  await sendWhatsApp({
+    recipient_phone: phone,
+    template_ref: "tpl_otp_wa",
+    variables: { otp_code: code },
+  })
 
   return NextResponse.json({ message: "OTP sent", expires_in: OTP_EXPIRY_SECONDS })
 }

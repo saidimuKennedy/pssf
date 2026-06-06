@@ -42,6 +42,18 @@ const RULES = [
   { id: "00000000-0000-0000-0000-000000000021", trigger_event: "TASK_OVERDUE", recipient_type: "EMPLOYER", channel: NotificationChannel.EMAIL, template_ref: "tpl_task_overdue_email" },
   // CASE_REASSIGNED
   { id: "00000000-0000-0000-0000-000000000022", trigger_event: "CASE_REASSIGNED", recipient_type: "PSSF_STAFF", channel: NotificationChannel.PORTAL, template_ref: "tpl_case_reassigned_portal" },
+  // EMPLOYER_APPROVED — add email (spec: all events fire all channels)
+  { id: "00000000-0000-0000-0000-000000000023", trigger_event: "EMPLOYER_APPROVED", recipient_type: "MEMBER", channel: NotificationChannel.EMAIL, template_ref: "tpl_employer_approved_email" },
+  // EMPLOYER_REJECTED — add whatsapp
+  { id: "00000000-0000-0000-0000-000000000024", trigger_event: "EMPLOYER_REJECTED", recipient_type: "MEMBER", channel: NotificationChannel.WHATSAPP, template_ref: "tpl_employer_rejected_wa" },
+  // MORE_INFO_REQUIRED — add email
+  { id: "00000000-0000-0000-0000-000000000025", trigger_event: "MORE_INFO_REQUIRED", recipient_type: "MEMBER", channel: NotificationChannel.EMAIL, template_ref: "tpl_more_info_required_email" },
+  // PAYMENT_PROCESSING — add email
+  { id: "00000000-0000-0000-0000-000000000026", trigger_event: "PAYMENT_PROCESSING", recipient_type: "MEMBER", channel: NotificationChannel.EMAIL, template_ref: "tpl_payment_processing_email" },
+  // CASE_COMPLETED — add email
+  { id: "00000000-0000-0000-0000-000000000027", trigger_event: "CASE_COMPLETED", recipient_type: "MEMBER", channel: NotificationChannel.EMAIL, template_ref: "tpl_case_completed_email" },
+  // CASE_REJECTED — add whatsapp
+  { id: "00000000-0000-0000-0000-000000000028", trigger_event: "CASE_REJECTED", recipient_type: "MEMBER", channel: NotificationChannel.WHATSAPP, template_ref: "tpl_case_rejected_wa" },
 ] as const
 
 async function seed() {

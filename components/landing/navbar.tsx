@@ -1,15 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
-import {
-  ChevronDown,
-  Lock,
-  Menu,
-  Moon,
-  Sun,
-  X,
-} from "lucide-react"
+import { ChevronDown, Lock, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -84,44 +77,26 @@ const RESOURCE_LINKS = [
 ]
 
 const NAV_LINK =
-  "text-sm font-medium text-[#0D2137] hover:text-[#1A7A4A] transition-colors dark:text-white dark:hover:text-[#1A7A4A]"
+  "text-sm font-medium text-[#0D2137] hover:text-[#1A7A4A] transition-colors"
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [dark, setDark] = useState(false)
-
-  useEffect(() => {
-    const stored = localStorage.getItem("pssf-theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
-    const isDark = stored === "dark" || (!stored && prefersDark)
-    setDark(isDark)
-    document.documentElement.classList.toggle("dark", isDark)
-  }, [])
-
-  function toggleDark() {
-    const next = !dark
-    setDark(next)
-    document.documentElement.classList.toggle("dark", next)
-    localStorage.setItem("pssf-theme", next ? "dark" : "light")
-  }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E5E7EB] dark:bg-gray-900 dark:border-gray-700">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E5E7EB]">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        {/* Logo */}
         <Link href="/" className="flex min-w-0 items-center gap-3">
           <PssfLogoMark />
           <div className="min-w-0 hidden sm:block">
-            <p className="truncate text-sm font-bold text-[#0D2137] dark:text-white leading-tight">
+            <p className="truncate text-sm font-bold text-[#0D2137] leading-tight">
               Public Service Superannuation Fund
             </p>
-            <p className="truncate text-xs text-[#6B7280] dark:text-gray-400">
+            <p className="truncate text-xs text-[#6B7280]">
               Smart Self-Service Platform
             </p>
           </div>
         </Link>
 
-        {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-6" aria-label="Main">
           <Link href="/" className={cn(NAV_LINK, "border-b-2 border-[#1A7A4A] pb-0.5")}>
             Home
@@ -165,29 +140,15 @@ export function Navbar() {
           </a>
         </nav>
 
-        {/* Desktop actions */}
         <div className="hidden lg:flex items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={toggleDark}
-            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-            className="text-[#0D2137] dark:text-white"
-          >
-            {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
-          </Button>
           <Button
             variant="outline"
             asChild
-            className="border-[#0D2137] text-[#0D2137] hover:bg-[#0D2137]/5 dark:border-gray-500 dark:text-white"
+            className="border-[#0D2137] text-[#0D2137] hover:bg-[#0D2137]/5"
           >
             <Link href="/login">Login</Link>
           </Button>
-          <Button
-            asChild
-            className="bg-[#1A7A4A] hover:bg-[#1A7A4A]/90 text-white"
-          >
+          <Button asChild className="bg-[#1A7A4A] hover:bg-[#1A7A4A]/90 text-white">
             <Link href="/login">
               <Lock className="size-4" />
               Access Portal
@@ -195,17 +156,7 @@ export function Navbar() {
           </Button>
         </div>
 
-        {/* Mobile toggle */}
         <div className="flex lg:hidden items-center gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={toggleDark}
-            aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {dark ? <Sun className="size-5" /> : <Moon className="size-5" />}
-          </Button>
           <Button
             type="button"
             variant="ghost"
@@ -218,14 +169,13 @@ export function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
       {mobileOpen && (
-        <div className="lg:hidden border-t border-[#E5E7EB] bg-white dark:bg-gray-900 dark:border-gray-700 px-4 py-4 space-y-4">
+        <div className="lg:hidden border-t border-[#E5E7EB] bg-white px-4 py-4 space-y-4">
           <nav className="flex flex-col gap-3" aria-label="Mobile">
             <Link href="/" className={NAV_LINK} onClick={() => setMobileOpen(false)}>
               Home
             </Link>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280] dark:text-gray-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
               Services
             </p>
             {SERVICE_LINKS.map((item) => (
@@ -244,7 +194,7 @@ export function Navbar() {
             <a href="#about" className={NAV_LINK} onClick={() => setMobileOpen(false)}>
               About PSSF
             </a>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280] dark:text-gray-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
               Resources
             </p>
             {RESOURCE_LINKS.map((item) => (
@@ -261,7 +211,7 @@ export function Navbar() {
               Support
             </a>
           </nav>
-          <div className="flex flex-col gap-2 pt-2 border-t border-[#E5E7EB] dark:border-gray-700">
+          <div className="flex flex-col gap-2 pt-2 border-t border-[#E5E7EB]">
             <Button variant="outline" asChild className="border-[#0D2137] text-[#0D2137] w-full">
               <Link href="/login" onClick={() => setMobileOpen(false)}>
                 Login

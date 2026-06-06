@@ -1,5 +1,3 @@
-import { DeathBenefitOption } from "@prisma/client"
-
 export const DEATH_STEPS = [
   "Deceased",
   "Details",
@@ -15,7 +13,7 @@ export const DEATH_STEPS = [
   "Done",
 ] as const
 
-export const DEATH_OPTION_TEXT: Record<DeathBenefitOption, { title: string; description: string }> = {
+export const DEATH_OPTION_TEXT: Record<string, { title: string; description: string }> = {
   LUMPSUM_THIRD_ANNUITY: {
     title: "One-third lumpsum + annuity",
     description: "One-third paid as lumpsum, remainder as annuity to beneficiaries.",

@@ -24,17 +24,15 @@ export type ActivateResult =
 const OTP_EXPIRY_SECONDS = 300
 
 async function dispatchOtp(phone: string, code: string): Promise<void> {
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.PSSF_MOCK_NOTIFICATIONS === "true") {
     console.log(`[MOCK OTP sign-up] phone=${phone} code=${code}`)
     return
   }
-  await fetch(`${process.env.CHATNATION_CRM_URL}/api/otp/send`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.CHATNATION_CRM_API_KEY}`,
-    },
-    body: JSON.stringify({ phone, code }),
+  const { sendWhatsApp } = await import("@/lib/notifications/channels/whatsapp")
+  await sendWhatsApp({
+    recipient_phone: phone,
+    template_ref: "tpl_otp_wa",
+    variables: { otp_code: code },
   })
 }
 

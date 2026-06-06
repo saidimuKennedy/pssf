@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { DeathBenefitOption } from "@prisma/client"
 import { StepIndicator } from "@/components/ui/step-indicator"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -25,7 +24,7 @@ export default function DeathOptionPage() {
     })
   }, [caseId])
 
-  const options = (Object.keys(DEATH_OPTION_TEXT) as DeathBenefitOption[]).filter(
+  const options = Object.keys(DEATH_OPTION_TEXT).filter(
     (k) => k !== "TRUST_FUND_MINORS" || hasMinor
   )
 
