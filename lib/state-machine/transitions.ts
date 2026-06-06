@@ -1,8 +1,31 @@
-import { CaseStatus, Role } from "@prisma/client"
+import { CaseStatus, CaseType, Role } from "@prisma/client"
 import { prisma } from "@/lib/db"
 import { assertValidTransition, assertRoleCanPerformAction } from "./guards"
 import { generateTask } from "./tasks"
 import { logAuditEvent } from "@/lib/audit/log"
+import { dispatch } from "@/lib/notifications/dispatch"
+
+const STATUS_TO_TRIGGER: Partial<Record<CaseStatus, string>> = {
+  [CaseStatus.SUBMITTED]: "CASE_SUBMITTED",
+  [CaseStatus.PENDING_EMPLOYER]: "PENDING_EMPLOYER",
+  [CaseStatus.EMPLOYER_APPROVED]: "EMPLOYER_APPROVED",
+  [CaseStatus.EMPLOYER_REJECTED]: "EMPLOYER_REJECTED",
+  [CaseStatus.MORE_INFO_REQUIRED]: "MORE_INFO_REQUIRED",
+  [CaseStatus.APPROVED]: "CASE_APPROVED",
+  [CaseStatus.REJECTED]: "CASE_REJECTED",
+  [CaseStatus.PAYMENT_PROCESSING]: "PAYMENT_PROCESSING",
+  [CaseStatus.COMPLETED]: "CASE_COMPLETED",
+}
+
+const CASE_TYPE_LABELS: Record<CaseType, string> = {
+  MEMBER_ENROLMENT: "Member Enrolment",
+  BENEFICIARY_NOMINATION: "Beneficiary Nomination",
+  AVC: "Additional Voluntary Contribution",
+  BENEFITS_CLAIM: "Benefits Claim",
+  DEATH_BENEFITS_CLAIM: "Death Benefits Claim",
+  MISSING_CONTRIBUTION: "Missing Contribution",
+  DISCREPANCY: "Discrepancy",
+}
 
 export interface TransitionContext {
   caseId: string
@@ -26,14 +49,14 @@ export async function transition(context: TransitionContext): Promise<CaseStatus
 
   // Validate transition legality
   if (nextStatus !== currentStatus) {
-    assertValidTransition(currentStatus, nextStatus)
+    assertValidTransition(currentStatus, nextStatus, caseRecord.type)
   }
 
   // Validate actor permission
   assertRoleCanPerformAction(actorRole, context.action)
 
-  // Execute atomic transaction
-  return await prisma.$transaction(async (tx) => {
+  // Execute atomic transaction — dispatch fires after commit
+  const result = await prisma.$transaction(async (tx) => {
     // Update case status
     await (tx as typeof prisma).case.update({
       where: { id: context.caseId },
@@ -74,4 +97,21 @@ export async function transition(context: TransitionContext): Promise<CaseStatus
 
     return nextStatus
   })
+
+  // Fire-and-forget dispatch after transaction commits — never blocks transition
+  const triggerEvent = STATUS_TO_TRIGGER[result]
+  if (triggerEvent && context.actorId) {
+    dispatch({
+      case_id: context.caseId,
+      recipient_id: context.actorId,
+      trigger_event: triggerEvent,
+      variables: {
+        case_reference: caseRecord.reference,
+        case_type_label: CASE_TYPE_LABELS[caseRecord.type] ?? caseRecord.type,
+        ...((context.metadata as Record<string, string>) ?? {}),
+      },
+    }).catch((err) => console.error("[Notification] Post-transition dispatch:", err))
+  }
+
+  return result
 }

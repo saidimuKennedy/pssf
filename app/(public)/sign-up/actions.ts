@@ -2,11 +2,12 @@
 
 import { prisma } from "@/lib/db"
 import { SignUpSchema } from "@/lib/validations/auth"
-import { hashOtp } from "@/auth"
+import { generateOtpCode, hashOtp } from "@/auth"
 import { Role } from "@prisma/client"
 import { signIn } from "@/auth"
 import { AuthError } from "next-auth"
 import { redirect } from "next/navigation"
+import { validateMember } from "@/lib/members/service"
 
 export type ValidateMemberResult =
   | null
@@ -21,10 +22,6 @@ export type ActivateResult =
   | { error?: string }
 
 const OTP_EXPIRY_SECONDS = 300
-
-function generateOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
 
 async function dispatchOtp(phone: string, code: string): Promise<void> {
   if (process.env.NODE_ENV === "development") {
@@ -53,26 +50,34 @@ export async function validateMemberAction(prevState: unknown, formData: FormDat
 
   const { national_id, date_of_birth } = parsed.data
 
-  // Check if already registered
-  const existing = await prisma.user.findFirst({
-    include: { member: true } as Record<string, boolean>,
-    where: { member: { national_id } } as Record<string, unknown>,
-  }).catch(() => null)
-
-  if (existing) {
-    return { error: { fieldErrors: { national_id: ["An account already exists for this National ID."] } } }
+  const result = await validateMember(national_id, date_of_birth)
+  if (!result.matched) {
+    return {
+      error: {
+        fieldErrors: {
+          national_id: ["We could not verify your identity. Check your National ID and date of birth."],
+        },
+      },
+    }
   }
 
-  // Phase 1 mock — return prefilled data for any valid lookup
+  const memberRecord = await prisma.member.findUnique({ where: { national_id } })
+  if (memberRecord?.user_id) {
+    const linked = await prisma.user.findUnique({ where: { id: memberRecord.user_id } })
+    if (linked?.phone) {
+      return {
+        error: {
+          fieldErrors: {
+            national_id: ["An account already exists for this National ID. Sign in instead."],
+          },
+        },
+      }
+    }
+  }
+
   return {
     success: true,
-    member: {
-      national_id,
-      date_of_birth,
-      full_name: "[From PSSF records]",
-      employer_name: "[From PSSF records]",
-      member_number: "[From PSSF records]",
-    },
+    member: result.member,
   }
 }
 
@@ -87,7 +92,7 @@ export async function sendSignUpOtpAction(prevState: unknown, formData: FormData
   })
   if (recentCount >= 5) return { error: "Too many requests. Try again in an hour." }
 
-  const code = generateOtp()
+  const code = generateOtpCode()
   await prisma.otpRequest.create({
     data: {
       phone,
@@ -131,18 +136,42 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
     return { error: "Invalid OTP." }
   }
 
-  await prisma.otpRequest.update({ where: { id: otp.id }, data: { verified: true } })
+  const member = await prisma.member.findUnique({ where: { national_id } })
 
-  // Create user record (Member model added in Phase 2 with full schema)
-  await prisma.user.create({
-    data: {
-      phone,
-      email: email || null,
-      role: Role.MEMBER,
-      is_active: true,
-    },
-  }).catch(() => null)
+  if (member?.user_id) {
+    await prisma.user.update({
+      where: { id: member.user_id },
+      data: {
+        phone,
+        email: email || member.email || undefined,
+        is_active: true,
+      },
+    })
+  } else {
+    const user = await prisma.user.create({
+      data: {
+        phone,
+        email: email || null,
+        role: Role.MEMBER,
+        is_active: true,
+      },
+    })
+    if (member) {
+      await prisma.member.update({
+        where: { id: member.id },
+        data: { user_id: user.id, is_verified: true },
+      })
+    }
+  }
 
+  if (member) {
+    await prisma.member.update({
+      where: { id: member.id },
+      data: { is_verified: true, mobile_number: phone },
+    })
+  }
+
+  // signIn must run before OTP is marked verified (auth provider requires verified: false)
   try {
     await signIn("otp", { phone, code, redirect: false })
   } catch (e) {

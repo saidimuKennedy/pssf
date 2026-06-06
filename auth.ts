@@ -159,6 +159,13 @@ export const authConfig = {
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig)
 
+export const DEV_OTP = "123456"
+
+export function generateOtpCode(): string {
+  if (process.env.NODE_ENV === "development") return DEV_OTP
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
 export function hashOtp(code: string): string {
   const { createHash } = require("crypto") as typeof import("crypto")
   return createHash("sha256").update(code).digest("hex")

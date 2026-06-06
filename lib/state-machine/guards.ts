@@ -1,9 +1,12 @@
-import { CaseStatus, Role } from "@prisma/client"
+import { CaseStatus, CaseType, Role } from "@prisma/client"
 
 export class AuthError extends Error {
-  constructor(code: string, message: string) {
+  details?: Record<string, unknown>
+
+  constructor(code: string, message: string, details?: Record<string, unknown>) {
     super(message)
     this.name = code
+    this.details = details
   }
 }
 
@@ -31,7 +34,8 @@ const VALID_TRANSITIONS: Record<CaseStatus, CaseStatus[]> = {
 
 export function assertValidTransition(
   currentStatus: CaseStatus,
-  nextStatus: CaseStatus
+  nextStatus: CaseStatus,
+  caseType?: CaseType
 ): void {
   const validNext = VALID_TRANSITIONS[currentStatus]
   if (!validNext.includes(nextStatus)) {
@@ -40,22 +44,59 @@ export function assertValidTransition(
       `Cannot transition from ${currentStatus} to ${nextStatus}`
     )
   }
+
+  if (nextStatus === CaseStatus.AWAITING_TRUSTEE && caseType !== CaseType.DEATH_BENEFITS_CLAIM) {
+    throw new AuthError(
+      "INVALID_STATUS_TRANSITION",
+      "AWAITING_TRUSTEE is only allowed for death benefits claims"
+    )
+  }
+
+  if (
+    nextStatus === CaseStatus.PAYMENT_PROCESSING &&
+    caseType &&
+    caseType !== CaseType.BENEFITS_CLAIM &&
+    caseType !== CaseType.DEATH_BENEFITS_CLAIM
+  ) {
+    throw new AuthError(
+      "INVALID_STATUS_TRANSITION",
+      "PAYMENT_PROCESSING is only allowed for benefits claim cases"
+    )
+  }
 }
 
 const ROLE_PERMISSIONS: Record<string, Set<string>> = {
-  MEMBER: new Set(["CREATE_CASE", "SUBMIT_CASE", "SUBMIT_ADDITIONAL_INFO"]),
-  CLAIMANT: new Set(["CREATE_CASE", "SUBMIT_CASE", "SUBMIT_ADDITIONAL_INFO"]),
-  EMPLOYER: new Set(["EMPLOYER_APPROVE", "EMPLOYER_REJECT"]),
-  PSSF_OFFICER: new Set(["PSSF_APPROVE", "PSSF_REJECT", "PSSF_REQUEST_MORE_INFO"]),
+  MEMBER: new Set(["CREATE_CASE", "SUBMIT", "SUBMIT_CASE", "SUBMIT_ADDITIONAL_INFO", "ROUTE"]),
+  CLAIMANT: new Set(["CREATE_CASE", "SUBMIT", "SUBMIT_CASE", "SUBMIT_ADDITIONAL_INFO", "ROUTE"]),
+  EMPLOYER: new Set(["EMPLOYER_APPROVE", "EMPLOYER_REJECT", "EMPLOYER_DECIDE", "ROUTE"]),
+  PSSF_OFFICER: new Set([
+    "PSSF_APPROVE",
+    "PSSF_REJECT",
+    "PSSF_REQUEST_MORE_INFO",
+    "PSSF_DECIDE",
+    "ROUTE",
+    "ROUTE_TO_VERIFICATION",
+    "ROUTE_TO_TRUSTEE",
+    "MARK_PAYMENT_PROCESSING",
+    "MARK_PAID",
+    "CLOSE_CASE",
+  ]),
   PSSF_SUPERVISOR: new Set([
     "PSSF_APPROVE",
     "PSSF_REJECT",
     "PSSF_REQUEST_MORE_INFO",
+    "PSSF_DECIDE",
     "PSSF_REASSIGN",
     "PSSF_CLOSE",
+    "CLOSE_CASE",
     "TRUSTEE_DECIDE",
+    "ROUTE",
+    "ROUTE_TO_VERIFICATION",
+    "ROUTE_TO_TRUSTEE",
+    "MARK_PAYMENT_PROCESSING",
+    "MARK_PAID",
   ]),
-  ADMIN: new Set([]),
+  ADMIN: new Set(["ROUTE", "CLOSE_CASE"]),
 }
 
 export function assertRoleCanPerformAction(role: Role, action: string): void {

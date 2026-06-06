@@ -5,6 +5,22 @@ import { AuthError } from "@/lib/state-machine/guards"
 import { getChecklist, evaluateCondition } from "./checklists"
 import { getMimeType, DocumentError } from "./validation"
 
+async function getMemberIdForUser(userId: string): Promise<string | null> {
+  const member = await prisma.member.findFirst({
+    where: { user_id: userId },
+    select: { id: true },
+  })
+  return member?.id ?? null
+}
+
+async function getEmployerIdForUser(userId: string): Promise<string | null> {
+  const officer = await prisma.employerOfficer.findFirst({
+    where: { user_id: userId },
+    select: { employer_id: true },
+  })
+  return officer?.employer_id ?? null
+}
+
 const UPLOADABLE_STATUSES: DocumentStatus[] = [
   DocumentStatus.UPLOADED,
   DocumentStatus.UNDER_REVIEW,
@@ -20,14 +36,16 @@ export async function uploadDocument(
   actorRole: Role
 ): Promise<{ id: string; document_type: string; status: string; file_name: string }> {
   const caseRecord = await prisma.case.findUniqueOrThrow({ where: { id: caseId } })
+  const memberId = await getMemberIdForUser(actorId)
+  const employerId = await getEmployerIdForUser(actorId)
 
   if (
     (actorRole === Role.MEMBER || actorRole === Role.CLAIMANT) &&
-    caseRecord.member_id !== actorId
+    caseRecord.member_id !== memberId
   ) {
     throw new AuthError("FORBIDDEN", "Cannot upload to this case")
   }
-  if (actorRole === Role.EMPLOYER && caseRecord.employer_id !== actorId) {
+  if (actorRole === Role.EMPLOYER && caseRecord.employer_id !== employerId) {
     throw new AuthError("FORBIDDEN", "Cannot upload to this case")
   }
 
@@ -89,13 +107,16 @@ export async function getDocument(
     throw new AuthError("NOT_FOUND", "Document has no file data")
   }
 
+  const memberId = await getMemberIdForUser(actorId)
+  const employerId = await getEmployerIdForUser(actorId)
+
   if (
     (actorRole === Role.MEMBER || actorRole === Role.CLAIMANT) &&
-    doc.case.member_id !== actorId
+    doc.case.member_id !== memberId
   ) {
     throw new AuthError("FORBIDDEN", "Cannot access this document")
   }
-  if (actorRole === Role.EMPLOYER && doc.case.employer_id !== actorId) {
+  if (actorRole === Role.EMPLOYER && doc.case.employer_id !== employerId) {
     throw new AuthError("FORBIDDEN", "Cannot access this document")
   }
 
@@ -125,7 +146,8 @@ export async function replaceDocument(
   const isPssfRole = actorRole === Role.PSSF_OFFICER || actorRole === Role.PSSF_SUPERVISOR
 
   if (isMemberRole) {
-    if (doc.case.member_id !== actorId) {
+    const memberId = await getMemberIdForUser(actorId)
+    if (doc.case.member_id !== memberId) {
       throw new AuthError("FORBIDDEN", "Cannot replace this document")
     }
     const replaceableStatuses: DocumentStatus[] = [DocumentStatus.UPLOADED, DocumentStatus.REJECTED]

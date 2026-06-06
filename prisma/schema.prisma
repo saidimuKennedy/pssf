@@ -62,6 +62,18 @@ enum ApprovalDecision {
   REQUEST_MORE_INFO
 }
 
+enum NotificationChannel {
+  WHATSAPP
+  EMAIL
+  PORTAL
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 enum DocumentStatus {
   PENDING
   UPLOADED
@@ -169,6 +181,7 @@ model Member {
   postal_address        String?
   postal_code           String?
   town                  String?
+  communication_pref    NotificationChannel @default(PORTAL)
   is_verified           Boolean   @default(false)
   created_at            DateTime  @default(now())
   updated_at            DateTime  @updatedAt
@@ -177,10 +190,28 @@ model Member {
   employer              Employer? @relation(fields: [employer_id], references: [id])
   cases                 Case[]
   beneficiaries         Beneficiary[]
+  contributions         Contribution[]
 
   @@index([national_id])
   @@index([member_number])
   @@map("members")
+}
+
+model Contribution {
+  id              String   @id @default(uuid())
+  member_id       String
+  month           String
+  employee_amount Decimal
+  employer_amount Decimal
+  date_received   DateTime
+  status          String   @default("RECEIVED")
+  created_at      DateTime @default(now())
+
+  member          Member   @relation(fields: [member_id], references: [id])
+
+  @@index([member_id])
+  @@index([month])
+  @@map("contributions")
 }
 
 model Employer {
@@ -234,6 +265,7 @@ model Case {
   employer         Employer?       @relation("EmployerCases", fields: [employer_id], references: [id])
   status_history   CaseStatusHistory[]
   documents        Document[]
+  notifications    Notification[]
   tasks            Task[]
   approvals        Approval[]
   beneficiaries    Beneficiary[]
@@ -345,6 +377,41 @@ model Beneficiary {
 
   @@index([case_id])
   @@map("beneficiaries")
+}
+
+model Notification {
+  id           String              @id @default(uuid())
+  case_id      String?
+  recipient_id String?
+  channel      NotificationChannel
+  template_ref String
+  payload      Json
+  status       NotificationStatus  @default(PENDING)
+  is_read      Boolean             @default(false)
+  read_at      DateTime?
+  sent_at      DateTime?
+  error        String?
+  created_at   DateTime            @default(now())
+
+  case         Case?               @relation(fields: [case_id], references: [id])
+
+  @@index([case_id])
+  @@index([recipient_id])
+  @@map("notifications")
+}
+
+model NotificationRule {
+  id             String              @id @default(uuid())
+  trigger_event  String
+  recipient_type String
+  channel        NotificationChannel
+  template_ref   String
+  is_active      Boolean             @default(true)
+  created_at     DateTime            @default(now())
+  updated_at     DateTime            @updatedAt
+
+  @@index([trigger_event])
+  @@map("notification_rules")
 }
 
 model Document {

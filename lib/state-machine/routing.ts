@@ -1,6 +1,18 @@
 import { CaseType, CaseStatus } from "@prisma/client"
 
 export function getInitialRoute(caseType: CaseType, formData: Record<string, unknown>): CaseStatus {
+  if (caseType === CaseType.MISSING_CONTRIBUTION) {
+    return CaseStatus.UNDER_REVIEW
+  }
+
+  if (caseType === CaseType.DISCREPANCY) {
+    const category = formData.field_category as string | undefined
+    if (category === "EMPLOYMENT") {
+      return CaseStatus.PENDING_EMPLOYER
+    }
+    return CaseStatus.UNDER_REVIEW
+  }
+
   // Journeys that route to employer first
   const employerFirstJourneys = [
     CaseType.MEMBER_ENROLMENT,
@@ -9,8 +21,8 @@ export function getInitialRoute(caseType: CaseType, formData: Record<string, unk
   ]
 
   if ((employerFirstJourneys as CaseType[]).includes(caseType)) {
-    // Special case: AVC with MOBILE_WALLET routes directly to PSSF
-    if (caseType === CaseType.AVC && formData.method === "MOBILE_WALLET") {
+    // AVC payroll routes to employer; mobile wallet routes directly to PSSF
+    if (caseType === CaseType.AVC && formData.avc_method === "MOBILE_WALLET") {
       return CaseStatus.UNDER_REVIEW
     }
     return CaseStatus.PENDING_EMPLOYER

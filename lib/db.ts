@@ -1,5 +1,8 @@
+import { loadEnvConfig } from "@next/env"
 import { PrismaClient } from "@prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+
+loadEnvConfig(process.cwd())
 
 function createPrismaClient() {
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })

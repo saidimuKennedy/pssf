@@ -230,6 +230,11 @@ export default function SignUpPage() {
                     className="tracking-widest text-center text-lg"
                   />
                 </div>
+                {process.env.NODE_ENV === "development" && (
+                  <p className="text-xs text-[#6B7280] bg-[#F5F5F5] rounded-md px-3 py-2">
+                    Development mode — use OTP: <strong>123456</strong>
+                  </p>
+                )}
                 {activateState?.error && (
                   <p className="text-sm text-[#DC2626]">{activateState.error}</p>
                 )}

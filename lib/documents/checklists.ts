@@ -56,7 +56,7 @@ export function evaluateCondition(
     case "has_child_claimant":
       return Boolean(formData.has_child_claimant)
     case "reason_is_emigration":
-      return formData.leaving_reason === "EMIGRATION"
+      return formData.reason_for_leaving === "EMIGRATION" || formData.leaving_reason === "EMIGRATION"
     case "joined_at_45_plus":
       return Boolean(formData.joined_at_45_plus)
     default:

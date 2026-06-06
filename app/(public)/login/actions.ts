@@ -6,15 +6,11 @@ import { AuthError } from "next-auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/db"
 import bcrypt from "bcryptjs"
-import { hashOtp } from "@/auth"
+import { generateOtpCode, hashOtp } from "@/auth"
 import { Role } from "@prisma/client"
 
 const STAFF_ROLES: Role[] = [Role.PSSF_OFFICER, Role.PSSF_SUPERVISOR, Role.ADMIN, Role.EMPLOYER]
 const OTP_EXPIRY_SECONDS = 300
-
-function generateOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
 
 async function dispatchOtp(identifier: string, code: string, isEmail: boolean): Promise<void> {
   if (process.env.NODE_ENV === "development") {
@@ -48,7 +44,7 @@ export async function requestOtpAction(prevState: unknown, formData: FormData) {
   })
   if (recentCount >= 5) return { error: "Too many requests. Try again in an hour." }
 
-  const code = generateOtp()
+  const code = generateOtpCode()
   await prisma.otpRequest.create({
     data: {
       user_id: user.id,
@@ -109,7 +105,7 @@ export async function passwordLoginAction(prevState: unknown, formData: FormData
   })
   if (recentCount >= 5) return { error: "Too many OTP requests. Try again in an hour." }
 
-  const code = generateOtp()
+  const code = generateOtpCode()
   await prisma.otpRequest.create({
     data: {
       user_id: user.id,

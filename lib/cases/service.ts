@@ -1,10 +1,27 @@
 import { CaseType, Role, CaseStatus } from "@prisma/client"
 import { prisma } from "@/lib/db"
 import { generateCaseReference } from "./reference"
-import { transition, TransitionContext } from "@/lib/state-machine/transitions"
+import { transition } from "@/lib/state-machine/transitions"
 import { getInitialRoute } from "@/lib/state-machine/routing"
 import { AuthError } from "@/lib/state-machine/guards"
 import { validateSubmissionDocuments } from "@/lib/documents/service"
+import { validateAllocation } from "@/lib/beneficiaries/service"
+
+async function getMemberIdForUser(userId: string): Promise<string | null> {
+  const member = await prisma.member.findFirst({
+    where: { user_id: userId },
+    select: { id: true },
+  })
+  return member?.id ?? null
+}
+
+async function getEmployerIdForUser(userId: string): Promise<string | null> {
+  const officer = await prisma.employerOfficer.findFirst({
+    where: { user_id: userId },
+    select: { employer_id: true },
+  })
+  return officer?.employer_id ?? null
+}
 
 export interface CreateCaseInput {
   type: CaseType
@@ -42,47 +59,88 @@ export async function getCase(
     include: {
       member: true,
       employer: true,
-      status_history: { orderBy: { created_at: "asc" } },
+      documents: { orderBy: { created_at: "asc" } },
+      status_history: { orderBy: { created_at: "desc" } },
       tasks: true,
       approvals: true,
       beneficiaries: true,
       notes: { orderBy: { created_at: "desc" } },
+      notifications: { orderBy: { created_at: "desc" } },
     },
   })
 
-  // Enforce scoping
-  if (actorRole === Role.MEMBER || actorRole === Role.CLAIMANT) {
-    if (caseRecord.member_id !== actorId) {
-      throw new AuthError("FORBIDDEN", "Cannot access this case")
+  if (actorRole === Role.MEMBER) {
+    const memberId = await getMemberIdForUser(actorId)
+    if (!memberId || caseRecord.member_id !== memberId) {
+      throw new AuthError("NOT_FOUND", "Case not found or access denied")
+    }
+  } else if (actorRole === Role.CLAIMANT) {
+    const fd = (caseRecord.form_data as Record<string, unknown>) ?? {}
+    if (fd.claimant_user_id !== actorId) {
+      throw new AuthError("NOT_FOUND", "Case not found or access denied")
     }
   } else if (actorRole === Role.EMPLOYER) {
-    if (caseRecord.employer_id !== actorId) {
-      throw new AuthError("FORBIDDEN", "Cannot access this case")
+    const employerId = await getEmployerIdForUser(actorId)
+    if (!employerId || caseRecord.employer_id !== employerId) {
+      throw new AuthError("NOT_FOUND", "Case not found or access denied")
     }
   }
 
   return caseRecord
 }
 
+export interface ListCasesFilters {
+  status?: CaseStatus
+  type?: CaseType
+  page?: number
+  limit?: number
+  search?: string
+}
+
 export async function listCases(
   actorId: string,
   actorRole: Role,
-  filters?: Record<string, unknown>
-): Promise<unknown[]> {
-  let where: Record<string, unknown> = {}
+  filters?: ListCasesFilters
+): Promise<{ total: number; page: number; limit: number; data: unknown[] }> {
+  const where: Record<string, unknown> = {}
+  const page = filters?.page ?? 1
+  const limit = Math.min(100, Math.max(1, filters?.limit ?? 20))
 
-  if (actorRole === Role.MEMBER || actorRole === Role.CLAIMANT) {
-    where.member_id = actorId
+  if (actorRole === Role.MEMBER) {
+    const memberId = await getMemberIdForUser(actorId)
+    if (!memberId) return { total: 0, page, limit, data: [] }
+    where.member_id = memberId
+  } else if (actorRole === Role.CLAIMANT) {
+    where.type = CaseType.DEATH_BENEFITS_CLAIM
+    where.form_data = { path: ["claimant_user_id"], equals: actorId }
   } else if (actorRole === Role.EMPLOYER) {
-    where.employer_id = actorId
+    const employerId = await getEmployerIdForUser(actorId)
+    if (!employerId) return { total: 0, page, limit, data: [] }
+    where.employer_id = employerId
   }
 
-  return await prisma.case.findMany({
-    where,
-    include: { status_history: true },
-    orderBy: { created_at: "desc" },
-    take: filters?.limit ? (filters.limit as number) : 100,
-  })
+  if (filters?.status) where.status = filters.status
+  if (filters?.type) where.type = filters.type
+  if (filters?.search) {
+    where.reference = { contains: filters.search, mode: "insensitive" }
+  }
+
+  const [total, data] = await Promise.all([
+    prisma.case.count({ where }),
+    prisma.case.findMany({
+      where,
+      include: {
+        member: { select: { full_name: true } },
+        employer: { select: { name: true } },
+        status_history: { orderBy: { created_at: "desc" }, take: 1 },
+      },
+      orderBy: { updated_at: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+  ])
+
+  return { total, page, limit, data }
 }
 
 export async function updateFormData(
@@ -118,9 +176,34 @@ export async function submitCase(
   }
 
   const formData = (caseRecord.form_data as Record<string, unknown>) ?? {}
+
+  if (caseRecord.type === CaseType.BENEFITS_CLAIM) {
+    if (!formData.payment_confirmed || !formData.preview_payment_confirmed) {
+      throw new AuthError(
+        "VALIDATION_ERROR",
+        "Payment details must be confirmed on both the payment and preview steps before submission."
+      )
+    }
+  }
+
+  if (caseRecord.type === CaseType.BENEFICIARY_NOMINATION) {
+    const { valid, total } = await validateAllocation(caseId)
+    if (!valid) {
+      throw new AuthError(
+        "ALLOCATION_INVALID",
+        `Beneficiary allocations must total exactly 100%. Current total: ${total}%.`,
+        { total }
+      )
+    }
+  }
+
   const { valid, missing } = await validateSubmissionDocuments(caseId, caseRecord.type, formData)
   if (!valid) {
-    throw new AuthError("DOCUMENT_REQUIRED", `Missing required documents: ${missing.join(", ")}`)
+    throw new AuthError(
+      "DOCUMENT_REQUIRED",
+      `Missing required documents: ${missing.join(", ")}`,
+      { missing }
+    )
   }
 
   // Transition to SUBMITTED
