@@ -3,12 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS=--dns-result-order=ipv4first next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_OPTIONS=--dns-result-order=ipv4first next start",
     "lint": "eslint",
-    "seed": "tsx prisma/seed.ts",
-    "seed:notifications": "tsx prisma/seed-notifications.ts"
+    "seed": "NODE_OPTIONS=--dns-result-order=ipv4first tsx prisma/seed.ts",
+    "seed:notifications": "NODE_OPTIONS=--dns-result-order=ipv4first tsx prisma/seed-notifications.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -1181,6 +1181,476 @@ async function main() {
   })
   console.log("✓ E1/E2 cases seeded")
 
+  // ── Kennedy Test Credentials ──────────────────────────────────────────────
+  // Member  : phone +254704696287  → WhatsApp OTP + all case notifications
+  //           email waruirukennedy2@gmail.com → email case notifications
+  // Staff   : kennedy.officer@pssf.go.ke  / Kennedy@1234  (PSSF_OFFICER)
+  // Employer: kennedy.employer@pssf.go.ke / Kennedy@1234  (can approve Kennedy's cases)
+  // Admin   : kennedy.admin@pssf.go.ke    / Kennedy@1234
+
+  const kennedyEmployer = await prisma.employer.upsert({
+    where: { code: "KTEST" },
+    update: {},
+    create: { id: "emp-ken1-0000-0000-000000000001", name: "Kenya Test Ministry", code: "KTEST" },
+  })
+
+  const kennedyEmployerUser = await prisma.user.upsert({
+    where: { email: "kennedy.employer@pssf.go.ke" },
+    update: {},
+    create: {
+      id: "usr-kenEmp-000-0000-000000000001",
+      email: "kennedy.employer@pssf.go.ke",
+      password_hash: HASH("Kennedy@1234"),
+      role: Role.EMPLOYER,
+      is_active: true,
+    },
+  })
+  await prisma.employerOfficer.upsert({
+    where: { user_id: kennedyEmployerUser.id },
+    update: {},
+    create: {
+      id: "off-ken1-0000-0000-000000000001",
+      user_id: kennedyEmployerUser.id,
+      employer_id: kennedyEmployer.id,
+      full_name: "Kennedy Waruiru",
+      designation: "HR Director",
+    },
+  })
+
+  await prisma.user.upsert({
+    where: { email: "kennedy.officer@pssf.go.ke" },
+    update: {},
+    create: {
+      id: "usr-kenOff-000-0000-000000000001",
+      email: "kennedy.officer@pssf.go.ke",
+      password_hash: HASH("Kennedy@1234"),
+      role: Role.PSSF_OFFICER,
+      is_active: true,
+    },
+  })
+
+  await prisma.user.upsert({
+    where: { email: "kennedy.admin@pssf.go.ke" },
+    update: {},
+    create: {
+      id: "usr-kenAdm-000-0000-000000000001",
+      email: "kennedy.admin@pssf.go.ke",
+      password_hash: HASH("Kennedy@1234"),
+      role: Role.ADMIN,
+      is_active: true,
+    },
+  })
+
+  const kennedyMemberUser = await prisma.user.upsert({
+    where: { phone: "+254704696287" },
+    update: { email: "waruirukennedy2@gmail.com", is_active: true },
+    create: {
+      id: "usr-kenMem-000-0000-000000000001",
+      phone: "+254704696287",
+      email: "waruirukennedy2@gmail.com",
+      role: Role.MEMBER,
+      is_active: true,
+    },
+  })
+
+  const kennedyMember = await prisma.member.upsert({
+    where: { national_id: "70469628" },
+    update: {},
+    create: {
+      id: "mem-ken1-0000-0000-000000000001",
+      user_id: kennedyMemberUser.id,
+      national_id: "70469628",
+      full_name: "Kennedy Waruiru",
+      date_of_birth: new Date("1990-06-26"),
+      kra_pin: "K704969628W",
+      member_number: "PSSF/2015/099",
+      personal_number: "PN099696",
+      employer_id: kennedyEmployer.id,
+      employer_name: kennedyEmployer.name,
+      date_of_employment: new Date("2015-01-05"),
+      date_joined_scheme: new Date("2015-02-01"),
+      mobile_number: "+254704696287",
+      email: "waruirukennedy2@gmail.com",
+      town: "Nairobi",
+      communication_pref: NotificationChannel.WHATSAPP,
+      is_verified: true,
+    },
+  })
+
+  // 24 months contributions for Kennedy
+  await prisma.contribution.deleteMany({ where: { member_id: kennedyMember.id } })
+  const kennedyContribs = []
+  for (let i = 23; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 15)
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    kennedyContribs.push({
+      member_id: kennedyMember.id,
+      month,
+      employee_amount: 45000,
+      employer_amount: 45000,
+      date_received: d,
+      status: "RECEIVED",
+    })
+  }
+  await prisma.contribution.createMany({ data: kennedyContribs })
+  console.log("✓ Kennedy member + contributions seeded")
+
+  // ── J2 Member Enrolment ───────────────────────────────────────────────────
+  // ENR-TEST-1: PENDING_EMPLOYER  → login as kennedy.employer → Approve  → fires EMPLOYER_APPROVED  WA+email
+  // ENR-TEST-2: PENDING_EMPLOYER  → login as kennedy.employer → Reject   → fires EMPLOYER_REJECTED  WA+email
+  // ENR-TEST-3: UNDER_REVIEW      → login as kennedy.officer  → Approve  → fires CASE_APPROVED      WA+email
+  // ENR-TEST-4: UNDER_REVIEW      → login as kennedy.officer  → Request more info → MORE_INFO_REQUIRED WA+email
+  // ENR-TEST-5: MORE_INFO_REQUIRED (already fired, visible in portal)
+
+  for (const [ref, id, status, extra] of [
+    ["ENR-TEST-000001", "case-kenEnr1-0000-0000-00000001", CaseStatus.PENDING_EMPLOYER, {}],
+    ["ENR-TEST-000002", "case-kenEnr2-0000-0000-00000002", CaseStatus.PENDING_EMPLOYER, {}],
+    ["ENR-TEST-000003", "case-kenEnr3-0000-0000-00000003", CaseStatus.UNDER_REVIEW, {}],
+    ["ENR-TEST-000004", "case-kenEnr4-0000-0000-00000004", CaseStatus.UNDER_REVIEW, {}],
+    ["ENR-TEST-000005", "case-kenEnr5-0000-0000-00000005", CaseStatus.MORE_INFO_REQUIRED, { info_requested: "Please upload a certified copy of your National ID." }],
+  ] as const) {
+    await prisma.case.upsert({
+      where: { reference: ref },
+      update: {},
+      create: {
+        id,
+        reference: ref,
+        type: CaseType.MEMBER_ENROLMENT,
+        status,
+        member_id: kennedyMember.id,
+        employer_id: kennedyEmployer.id,
+        submitted_at: new Date(),
+        form_data: {
+          national_id: "70469628",
+          date_of_birth: "1990-06-26",
+          full_name: "Kennedy Waruiru",
+          mobile_number: "+254704696287",
+          email: "waruirukennedy2@gmail.com",
+          declaration_accepted: true,
+          ...extra,
+        } as any,
+      },
+    })
+  }
+  console.log("✓ J2 Kennedy enrolment cases seeded")
+
+  // ── J3 Beneficiary Nomination ─────────────────────────────────────────────
+  // BEN-TEST-1: UNDER_REVIEW → PSSF approve  → CASE_APPROVED WA+email
+  // BEN-TEST-2: UNDER_REVIEW → PSSF reject   → CASE_REJECTED WA+email
+  // BEN-TEST-3: MORE_INFO_REQUIRED (visible, already fired)
+  // BEN-TEST-4: COMPLETED    (historical view)
+
+  for (const [ref, id, status, extra] of [
+    ["BEN-TEST-000001", "case-kenBen1-0000-0000-00000001", CaseStatus.UNDER_REVIEW, {}],
+    ["BEN-TEST-000002", "case-kenBen2-0000-0000-00000002", CaseStatus.UNDER_REVIEW, {}],
+    ["BEN-TEST-000003", "case-kenBen3-0000-0000-00000003", CaseStatus.MORE_INFO_REQUIRED, { info_requested: "Please provide witness ID number." }],
+    ["BEN-TEST-000004", "case-kenBen4-0000-0000-00000004", CaseStatus.COMPLETED, {}],
+  ] as const) {
+    await prisma.case.upsert({
+      where: { reference: ref },
+      update: {},
+      create: {
+        id,
+        reference: ref,
+        type: CaseType.BENEFICIARY_NOMINATION,
+        status,
+        member_id: kennedyMember.id,
+        employer_id: kennedyEmployer.id,
+        submitted_at: new Date("2026-01-15"),
+        ...(status === CaseStatus.COMPLETED ? { completed_at: new Date("2026-02-01") } : {}),
+        form_data: {
+          national_id: "70469628",
+          full_name: "Kennedy Waruiru",
+          mobile_number: "+254704696287",
+          has_minor_beneficiary: false,
+          declaration_accepted: true,
+          ...extra,
+        } as any,
+      },
+    })
+  }
+
+  // Beneficiaries for BEN-TEST-1 and BEN-TEST-2
+  for (const ref of ["BEN-TEST-000001", "BEN-TEST-000002", "BEN-TEST-000004"]) {
+    const benCase = await prisma.case.findUnique({ where: { reference: ref } })
+    if (benCase) {
+      await prisma.beneficiary.deleteMany({ where: { case_id: benCase.id } })
+      await prisma.beneficiary.createMany({
+        data: [
+          {
+            case_id: benCase.id,
+            surname: "Waruiru",
+            first_name: "Jane",
+            relationship: "Spouse",
+            national_id: "78901234",
+            date_of_birth: new Date("1992-04-10"),
+            allocation_percent: 60,
+            is_minor: false,
+          },
+          {
+            case_id: benCase.id,
+            surname: "Waruiru",
+            first_name: "Brian",
+            relationship: "Child",
+            national_id: "89012345",
+            date_of_birth: new Date("2015-11-20"),
+            allocation_percent: 40,
+            is_minor: false,
+          },
+        ],
+      })
+    }
+  }
+  console.log("✓ J3 Kennedy beneficiary cases seeded")
+
+  // ── J4 AVC ────────────────────────────────────────────────────────────────
+  // AVC-TEST-1: PENDING_EMPLOYER NEW  → employer approve → EMPLOYER_APPROVED WA+email
+  // AVC-TEST-2: PENDING_EMPLOYER VARY → employer reject  → EMPLOYER_REJECTED WA+email
+  // AVC-TEST-3: UNDER_REVIEW    NEW   → PSSF approve     → CASE_APPROVED WA+email
+  // AVC-TEST-4: COMPLETED CANCEL (historical)
+
+  const avcForms = {
+    "AVC-TEST-000001": { avc_action: "NEW", avc_method: "PAYROLL", new_amount: 5000, commencement_date: "2026-07-01" },
+    "AVC-TEST-000002": { avc_action: "VARY", avc_method: "PAYROLL", current_amount: 5000, new_amount: 8000, effective_date: "2026-07-01" },
+    "AVC-TEST-000003": { avc_action: "NEW", avc_method: "PAYROLL", new_amount: 3000, commencement_date: "2026-08-01" },
+    "AVC-TEST-000004": { avc_action: "CANCEL", avc_method: "PAYROLL", current_amount: 3000, effective_date: "2026-03-01" },
+  }
+
+  for (const [ref, id, status] of [
+    ["AVC-TEST-000001", "case-kenAvc1-0000-0000-00000001", CaseStatus.PENDING_EMPLOYER],
+    ["AVC-TEST-000002", "case-kenAvc2-0000-0000-00000002", CaseStatus.PENDING_EMPLOYER],
+    ["AVC-TEST-000003", "case-kenAvc3-0000-0000-00000003", CaseStatus.UNDER_REVIEW],
+    ["AVC-TEST-000004", "case-kenAvc4-0000-0000-00000004", CaseStatus.COMPLETED],
+  ] as const) {
+    await prisma.case.upsert({
+      where: { reference: ref },
+      update: {},
+      create: {
+        id,
+        reference: ref,
+        type: CaseType.AVC,
+        status,
+        member_id: kennedyMember.id,
+        employer_id: kennedyEmployer.id,
+        submitted_at: new Date(),
+        ...(status === CaseStatus.COMPLETED ? { completed_at: new Date("2026-04-01") } : {}),
+        form_data: {
+          national_id: "70469628",
+          full_name: "Kennedy Waruiru",
+          mobile_number: "+254704696287",
+          declaration_accepted: true,
+          ...avcForms[ref],
+        } as any,
+      },
+    })
+  }
+  console.log("✓ J4 Kennedy AVC cases seeded")
+
+  // ── J5 Benefits Claim ─────────────────────────────────────────────────────
+  // CLM-TEST-1: PENDING_EMPLOYER  → employer approve → EMPLOYER_APPROVED WA+email
+  // CLM-TEST-2: PENDING_EMPLOYER  → employer reject  → EMPLOYER_REJECTED WA+email
+  // CLM-TEST-3: UNDER_REVIEW      → PSSF approve     → CASE_APPROVED WA+email
+  // CLM-TEST-4: UNDER_REVIEW      → PSSF reject      → CASE_REJECTED WA+email
+  // CLM-TEST-5: UNDER_REVIEW      → PSSF more info   → MORE_INFO_REQUIRED WA+email
+  // CLM-TEST-6: APPROVED          → mark payment processing → PAYMENT_PROCESSING WA+email
+  // CLM-TEST-7: PAYMENT_PROCESSING → mark paid        → CASE_COMPLETED WA+email
+
+  const kenBenefitsForm = {
+    national_id: "70469628",
+    full_name: "Kennedy Waruiru",
+    bank_account_number: "0987654321",
+    bank_name: "Equity Bank",
+    bank_branch: "Nairobi",
+    mpesa_number: "+254704696287",
+    date_of_leaving: "2026-05-15",
+    reason_for_leaving: "NORMAL_RETIREMENT",
+    benefit_option: "FULL_ANNUITY",
+    payment_confirmed: true,
+    preview_payment_confirmed: true,
+    declaration_accepted: true,
+  }
+
+  for (const [ref, id, status] of [
+    ["CLM-TEST-000001", "case-kenClm1-0000-0000-00000001", CaseStatus.PENDING_EMPLOYER],
+    ["CLM-TEST-000002", "case-kenClm2-0000-0000-00000002", CaseStatus.PENDING_EMPLOYER],
+    ["CLM-TEST-000003", "case-kenClm3-0000-0000-00000003", CaseStatus.UNDER_REVIEW],
+    ["CLM-TEST-000004", "case-kenClm4-0000-0000-00000004", CaseStatus.UNDER_REVIEW],
+    ["CLM-TEST-000005", "case-kenClm5-0000-0000-00000005", CaseStatus.UNDER_REVIEW],
+    ["CLM-TEST-000006", "case-kenClm6-0000-0000-00000006", CaseStatus.APPROVED],
+    ["CLM-TEST-000007", "case-kenClm7-0000-0000-00000007", CaseStatus.PAYMENT_PROCESSING],
+  ] as const) {
+    await prisma.case.upsert({
+      where: { reference: ref },
+      update: {},
+      create: {
+        id,
+        reference: ref,
+        type: CaseType.BENEFITS_CLAIM,
+        status,
+        member_id: kennedyMember.id,
+        employer_id: kennedyEmployer.id,
+        submitted_at: new Date(),
+        form_data: kenBenefitsForm as any,
+      },
+    })
+  }
+
+  // Add employer approval to CLM-TEST-3/4/5 so they show up in PSSF review queue
+  for (const ref of ["CLM-TEST-000003", "CLM-TEST-000004", "CLM-TEST-000005"]) {
+    const c = await prisma.case.findUnique({ where: { reference: ref } })
+    if (c) {
+      await prisma.approval.deleteMany({ where: { case_id: c.id, type: ApprovalType.EMPLOYER } })
+      await prisma.approval.create({
+        data: {
+          case_id: c.id,
+          type: ApprovalType.EMPLOYER,
+          decision: ApprovalDecision.APPROVED,
+          actor_id: kennedyEmployerUser.id,
+          actor_name: "Kennedy Waruiru",
+          actor_role: "EMPLOYER",
+          actor_org: kennedyEmployer.name,
+          comments: JSON.stringify({ officer_name: "Kennedy Waruiru", designation: "HR Director" }),
+        },
+      })
+    }
+  }
+
+  // Documents on CLM-TEST-3 (UNDER_REVIEW) for document verification testing
+  const kenClm3 = await prisma.case.findUnique({ where: { reference: "CLM-TEST-000003" } })
+  if (kenClm3) {
+    await prisma.document.deleteMany({ where: { case_id: kenClm3.id } })
+    await prisma.document.createMany({
+      data: [
+        { case_id: kenClm3.id, document_type: "EXIT_LETTER", status: DocumentStatus.VERIFIED, file_name: "exit_letter.pdf", file_data: placeholderPdf, mime_type: "application/pdf", file_size_kb: 1 },
+        { case_id: kenClm3.id, document_type: "NATIONAL_ID", status: DocumentStatus.VERIFIED, file_name: "national_id.pdf", file_data: placeholderPdf, mime_type: "application/pdf", file_size_kb: 1 },
+        { case_id: kenClm3.id, document_type: "ATM_CARD", status: DocumentStatus.UNDER_REVIEW, file_name: "atm_card.pdf", file_data: placeholderPdf, mime_type: "application/pdf", file_size_kb: 1 },
+        { case_id: kenClm3.id, document_type: "KRA_PIN", status: DocumentStatus.VERIFIED, file_name: "kra_pin.pdf", file_data: placeholderPdf, mime_type: "application/pdf", file_size_kb: 1 },
+      ],
+    })
+  }
+  console.log("✓ J5 Kennedy benefits claim cases seeded")
+
+  // ── J6 Death Benefits Claim (Kennedy as claimant) ─────────────────────────
+  // DCL-TEST-1: SUBMITTED         → PSSF intake
+  // DCL-TEST-2: UNDER_VERIFICATION → documents under review
+  // DCL-TEST-3: AWAITING_TRUSTEE  → trustee decision pending
+
+  const kenDeathForm = {
+    deceased_member_id: members[0].id,
+    full_name: members[0].full_name,
+    national_id: members[0].national_id,
+    date_of_death: "2025-12-01",
+    county: "Nairobi",
+    subcounty: "Westlands",
+    location: "Parklands",
+    sublocation: "Highridge",
+    village: "Kitisuru",
+    chief_name: "Chief Njoroge",
+    benefit_option: "FULL_LUMPSUM",
+    claimants: [
+      {
+        name: "Kennedy Waruiru",
+        relationship: "Sibling",
+        national_id: "70469628",
+        mobile_number: "+254704696287",
+        is_minor: false,
+        bank_account_number: "0987654321",
+        bank_name: "Equity Bank",
+        bank_branch: "Nairobi",
+      },
+    ],
+    has_spouse_claimant: false,
+    has_child_claimant: false,
+    has_minor_claimant: false,
+    witness_name: "James Otieno",
+    witness_id: "55443322",
+    witness_signature: "James Otieno",
+    witness_date: "2025-12-05",
+    declaration_accepted: true,
+    claimant_user_id: kennedyMemberUser.id,
+  }
+
+  for (const [ref, id, status] of [
+    ["DCL-TEST-000001", "case-kenDcl1-0000-0000-00000001", CaseStatus.SUBMITTED],
+    ["DCL-TEST-000002", "case-kenDcl2-0000-0000-00000002", CaseStatus.UNDER_VERIFICATION],
+    ["DCL-TEST-000003", "case-kenDcl3-0000-0000-00000003", CaseStatus.AWAITING_TRUSTEE],
+  ] as const) {
+    await prisma.case.upsert({
+      where: { reference: ref },
+      update: {},
+      create: {
+        id,
+        reference: ref,
+        type: CaseType.DEATH_BENEFITS_CLAIM,
+        status,
+        member_id: members[0].id,
+        employer_id: moti.id,
+        claimant_name: "Kennedy Waruiru",
+        submitted_at: new Date(),
+        form_data: kenDeathForm as any,
+      },
+    })
+  }
+
+  // Documents on DCL-TEST-2
+  const kenDcl2 = await prisma.case.findUnique({ where: { reference: "DCL-TEST-000002" } })
+  if (kenDcl2) {
+    await prisma.document.deleteMany({ where: { case_id: kenDcl2.id } })
+    await prisma.document.createMany({
+      data: [
+        { case_id: kenDcl2.id, document_type: "DEATH_CERTIFICATE", status: DocumentStatus.VERIFIED, file_name: "death_cert.pdf", file_data: placeholderPdf, mime_type: "application/pdf", file_size_kb: 1 },
+        { case_id: kenDcl2.id, document_type: "NATIONAL_ID", status: DocumentStatus.UNDER_REVIEW, file_name: "claimant_id.pdf", file_data: placeholderPdf, mime_type: "application/pdf", file_size_kb: 1 },
+        { case_id: kenDcl2.id, document_type: "ATM_CARD", status: DocumentStatus.PENDING, file_name: "atm.pdf", file_data: placeholderPdf, mime_type: "application/pdf", file_size_kb: 1 },
+      ],
+    })
+  }
+  console.log("✓ J6 Kennedy death benefits cases seeded")
+
+  // ── Discrepancy & Missing Contribution ────────────────────────────────────
+  // DIS-TEST-1: UNDER_REVIEW → PSSF can process
+  // MCR-TEST-1: UNDER_REVIEW → PSSF can process
+
+  await prisma.case.upsert({
+    where: { reference: "DIS-TEST-000001" },
+    update: {},
+    create: {
+      id: "case-kenDis1-0000-0000-00000001",
+      reference: "DIS-TEST-000001",
+      type: CaseType.DISCREPANCY,
+      status: CaseStatus.UNDER_REVIEW,
+      member_id: kennedyMember.id,
+      employer_id: kennedyEmployer.id,
+      submitted_at: new Date(),
+      form_data: {
+        field_name: "EMPLOYER",
+        field_category: "EMPLOYMENT",
+        correct_information: "Kenya Test Ministry",
+        explanation: "Test discrepancy — employer name correction.",
+      } as any,
+    },
+  })
+
+  await prisma.case.upsert({
+    where: { reference: "MCR-TEST-000001" },
+    update: {},
+    create: {
+      id: "case-kenMcr1-0000-0000-00000001",
+      reference: "MCR-TEST-000001",
+      type: CaseType.MISSING_CONTRIBUTION,
+      status: CaseStatus.UNDER_REVIEW,
+      member_id: kennedyMember.id,
+      employer_id: kennedyEmployer.id,
+      submitted_at: new Date(),
+      form_data: {
+        month: "2026-04",
+        contribution_type: "BOTH",
+        explanation: "April 2026 contributions not reflected on statement.",
+        employer_name: kennedyEmployer.name,
+      } as any,
+    },
+  })
+  console.log("✓ Kennedy discrepancy + missing contribution cases seeded")
+
   // Notification rules
   const { execSync } = await import("child_process")
   execSync("npx tsx prisma/seed-notifications.ts", { stdio: "inherit", cwd: process.cwd() })
