@@ -1,9 +1,9 @@
-import { CaseStatus, CaseType, Role } from "@prisma/client"
+import { CaseStatus, CaseType, DocumentStatus, Role } from "@prisma/client"
 import { prisma } from "@/lib/db"
 import { assertValidTransition, assertRoleCanPerformAction } from "./guards"
 import { generateTask } from "./tasks"
 import { logAuditEvent } from "@/lib/audit/log"
-import { dispatch } from "@/lib/notifications/dispatch"
+import { dispatchForCaseEvent } from "@/lib/notifications/dispatch"
 
 const STATUS_TO_TRIGGER: Partial<Record<CaseStatus, string>> = {
   [CaseStatus.SUBMITTED]: "CASE_SUBMITTED",
@@ -55,17 +55,16 @@ export async function transition(context: TransitionContext): Promise<CaseStatus
   // Validate actor permission
   assertRoleCanPerformAction(actorRole, context.action)
 
-  // Atomic: only status update + history entry need to be in one transaction
-  await prisma.$transaction([
-    prisma.case.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.case.update({
       where: { id: context.caseId },
       data: {
         status: nextStatus,
         updated_at: new Date(),
         submitted_at: context.action === "SUBMIT" ? new Date() : undefined,
       },
-    }),
-    prisma.caseStatusHistory.create({
+    })
+    await tx.caseStatusHistory.create({
       data: {
         case_id: context.caseId,
         from_status: currentStatus,
@@ -73,8 +72,17 @@ export async function transition(context: TransitionContext): Promise<CaseStatus
         changed_by: context.actorId,
         reason: context.reason,
       },
-    }),
-  ])
+    })
+    if (nextStatus === CaseStatus.UNDER_REVIEW && currentStatus !== CaseStatus.UNDER_REVIEW) {
+      await tx.document.updateMany({
+        where: {
+          case_id: context.caseId,
+          status: DocumentStatus.UPLOADED,
+        },
+        data: { status: DocumentStatus.UNDER_REVIEW },
+      })
+    }
+  })
 
   const result = nextStatus
 
@@ -99,23 +107,12 @@ export async function transition(context: TransitionContext): Promise<CaseStatus
   // Fire-and-forget dispatch after transaction commits — never blocks transition
   const triggerEvent = STATUS_TO_TRIGGER[result]
   if (triggerEvent) {
-    // Notify the member/claimant who owns the case, not the actor who performed the action.
-    prisma.case.findUnique({
-      where: { id: context.caseId },
-      select: { member: { select: { user_id: true } } },
-    }).then((c) => {
-      const recipientId = c?.member?.user_id
-      if (!recipientId) return
-      return dispatch({
-        case_id: context.caseId,
-        recipient_id: recipientId,
-        trigger_event: triggerEvent,
-        variables: {
-          case_reference: caseRecord.reference,
-          case_type_label: CASE_TYPE_LABELS[caseRecord.type] ?? caseRecord.type,
-          ...((context.metadata as Record<string, string>) ?? {}),
-        },
-      })
+    dispatchForCaseEvent(context.caseId, triggerEvent, {
+      case_reference: caseRecord.reference,
+      case_type_label: CASE_TYPE_LABELS[caseRecord.type] ?? caseRecord.type,
+      rejection_reason: context.reason ?? "",
+      info_requested: context.reason ?? "",
+      ...((context.metadata as Record<string, string>) ?? {}),
     }).catch((err) => console.error("[Notification] Post-transition dispatch:", err))
   }
 

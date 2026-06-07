@@ -7,47 +7,62 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { validateMemberAction, sendSignUpOtpAction, activateAccountAction } from "./actions"
 import Link from "next/link"
 import { CheckCircle2, Lock } from "lucide-react"
 
-type Step = "validate" | "review" | "otp" | "activated"
+type Step = "validate" | "review" | "access" | "otp" | "activated"
 
 const STEPS: { key: Step; label: string }[] = [
   { key: "validate", label: "Validate" },
   { key: "review", label: "Review" },
+  { key: "access", label: "Access" },
   { key: "otp", label: "Verify" },
-  { key: "activated", label: "Activate" },
+  { key: "activated", label: "Done" },
 ]
 
 export default function SignUpPage() {
   const [step, setStep] = useState<Step>("validate")
   const [memberData, setMemberData] = useState<Record<string, string> | null>(null)
   const [phone, setPhone] = useState("")
+  const [email, setEmail] = useState("")
+  const [postalAddress, setPostalAddress] = useState("")
+  const [postalCode, setPostalCode] = useState("")
+  const [town, setTown] = useState("")
+  const [accessMethod, setAccessMethod] = useState<"otp" | "password">("otp")
+  const [password, setPassword] = useState("")
 
   const [validateState, validate, validatePending] = useActionState(validateMemberAction, null)
   const [otpSendState, sendOtp, otpSendPending] = useActionState(sendSignUpOtpAction, null)
   const [activateState, activate, activatePending] = useActionState(activateAccountAction, null)
 
-  // Advance to review when validation succeeds
   useEffect(() => {
     if (validateState?.success && validateState.member) {
-      setMemberData(validateState.member as Record<string, string>)
+      const m = validateState.member as Record<string, string>
+      setMemberData(m)
+      setPhone(m.mobile_number ?? "")
+      setEmail(m.email ?? "")
+      setPostalAddress(m.postal_address ?? "")
+      setPostalCode(m.postal_code ?? "")
+      setTown(m.town ?? "")
       setStep("review")
     }
   }, [validateState])
 
-  // Advance to OTP when send succeeds
   useEffect(() => {
     if (otpSendState?.success) setStep("otp")
   }, [otpSendState])
+
+  useEffect(() => {
+    if (activateState?.success) setStep("activated")
+  }, [activateState])
 
   const currentIdx = STEPS.findIndex((s) => s.key === step)
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#F5F5F5] px-4 py-12">
       <div className="w-full max-w-lg space-y-6">
-        {/* Logo */}
         <div className="text-center space-y-1">
           <div className="inline-flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-[#1A7A4A]" />
@@ -59,13 +74,12 @@ export default function SignUpPage() {
           </p>
         </div>
 
-        {/* Step indicator */}
-        <div className="flex items-center justify-between px-2">
+        <div className="flex items-center justify-between px-2 overflow-x-auto">
           {STEPS.map((s, idx) => {
             const done = idx < currentIdx
             const active = idx === currentIdx
             return (
-              <div key={s.key} className="flex items-center">
+              <div key={s.key} className="flex items-center shrink-0">
                 <div className="flex flex-col items-center gap-1">
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
@@ -83,14 +97,13 @@ export default function SignUpPage() {
                   </span>
                 </div>
                 {idx < STEPS.length - 1 && (
-                  <div className={`h-px w-16 mx-2 mb-5 transition-colors ${idx < currentIdx ? "bg-[#1A7A4A]" : "bg-[#E5E7EB]"}`} />
+                  <div className={`h-px w-8 sm:w-12 mx-1 sm:mx-2 mb-5 transition-colors ${idx < currentIdx ? "bg-[#1A7A4A]" : "bg-[#E5E7EB]"}`} />
                 )}
               </div>
             )
           })}
         </div>
 
-        {/* Step 1 — Validate */}
         {step === "validate" && (
           <Card className="border-[#E5E7EB]">
             <CardHeader>
@@ -128,7 +141,6 @@ export default function SignUpPage() {
           </Card>
         )}
 
-        {/* Step 2 — Review */}
         {step === "review" && memberData && (
           <Card className="border-[#E5E7EB]">
             <CardHeader>
@@ -152,7 +164,7 @@ export default function SignUpPage() {
                       {locked && <Lock className="w-3 h-3 text-[#6B7280]" />}
                     </div>
                     <div className={`px-3 py-2 rounded-md text-sm border ${locked ? "bg-[#F5F5F5] border-[#E5E7EB] text-[#6B7280]" : "bg-white border-[#E5E7EB]"}`}>
-                      {value}
+                      {value || "—"}
                     </div>
                   </div>
                 ))}
@@ -160,22 +172,59 @@ export default function SignUpPage() {
 
               <Separator />
 
-              <div className="space-y-1">
-                <Label htmlFor="phone">Mobile number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+254700000000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  required
-                />
-                <p className="text-xs text-[#6B7280]">Your OTP will be sent to this number.</p>
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-[#0D2137]">Contact details</p>
+                <div className="space-y-1">
+                  <Label htmlFor="phone">Mobile number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+254700000000"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="email">Email address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="postal_address">Postal address</Label>
+                  <Input
+                    id="postal_address"
+                    placeholder="P.O. Box 1234"
+                    value={postalAddress}
+                    onChange={(e) => setPostalAddress(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="postal_code">Postal code</Label>
+                    <Input
+                      id="postal_code"
+                      placeholder="00100"
+                      value={postalCode}
+                      onChange={(e) => setPostalCode(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="town">Town / city</Label>
+                    <Input
+                      id="town"
+                      placeholder="Nairobi"
+                      value={town}
+                      onChange={(e) => setTown(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
-
-              {otpSendState?.error && (
-                <p className="text-sm text-[#DC2626]">{otpSendState.error}</p>
-              )}
 
               <div className="flex gap-3">
                 <Button
@@ -186,11 +235,89 @@ export default function SignUpPage() {
                 >
                   Back
                 </Button>
+                <Button
+                  type="button"
+                  disabled={!phone}
+                  onClick={() => setStep("access")}
+                  className="flex-1 bg-[#0D2137] hover:bg-[#0D2137]/90 text-white"
+                >
+                  Continue
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {step === "access" && memberData && (
+          <Card className="border-[#E5E7EB]">
+            <CardHeader>
+              <CardTitle className="text-[#0D2137]">Set up access</CardTitle>
+              <CardDescription>
+                Choose how you would like to sign in to your account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup
+                value={accessMethod}
+                onValueChange={(v) => setAccessMethod(v as "otp" | "password")}
+                className="space-y-3"
+              >
+                <div className="flex items-start gap-3 rounded-lg border p-3">
+                  <RadioGroupItem value="otp" id="access-otp" className="mt-0.5" />
+                  <Label htmlFor="access-otp" className="cursor-pointer space-y-0.5">
+                    <span className="font-medium">OTP only</span>
+                    <p className="text-xs text-[#6B7280] font-normal">
+                      Sign in with a one-time code sent to your mobile each time.
+                    </p>
+                  </Label>
+                </div>
+                <div className="flex items-start gap-3 rounded-lg border p-3">
+                  <RadioGroupItem value="password" id="access-password" className="mt-0.5" />
+                  <Label htmlFor="access-password" className="cursor-pointer space-y-0.5">
+                    <span className="font-medium">Password + OTP</span>
+                    <p className="text-xs text-[#6B7280] font-normal">
+                      Set a password for faster sign-in, confirmed with OTP.
+                    </p>
+                  </Label>
+                </div>
+              </RadioGroup>
+
+              {accessMethod === "password" && (
+                <div className="space-y-1">
+                  <Label htmlFor="password">Choose a password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="At least 8 characters"
+                    minLength={8}
+                  />
+                </div>
+              )}
+
+              {otpSendState?.error && (
+                <p className="text-sm text-[#DC2626]">{otpSendState.error}</p>
+              )}
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => setStep("review")}
+                  className="flex-1 border-[#0D2137] text-[#0D2137]"
+                >
+                  Back
+                </Button>
                 <form action={sendOtp} className="flex-1">
                   <input type="hidden" name="phone" value={phone} />
                   <Button
                     type="submit"
-                    disabled={otpSendPending || !phone}
+                    disabled={
+                      otpSendPending ||
+                      !phone ||
+                      (accessMethod === "password" && password.length < 8)
+                    }
                     className="w-full bg-[#0D2137] hover:bg-[#0D2137]/90 text-white"
                   >
                     {otpSendPending ? "Sending…" : "Send OTP"}
@@ -201,7 +328,6 @@ export default function SignUpPage() {
           </Card>
         )}
 
-        {/* Step 3 — OTP */}
         {step === "otp" && memberData && (
           <Card className="border-[#E5E7EB]">
             <CardHeader>
@@ -216,6 +342,14 @@ export default function SignUpPage() {
                 <input type="hidden" name="phone" value={phone} />
                 <input type="hidden" name="national_id" value={memberData.national_id} />
                 <input type="hidden" name="full_name" value={memberData.full_name} />
+                <input type="hidden" name="email" value={email} />
+                <input type="hidden" name="postal_address" value={postalAddress} />
+                <input type="hidden" name="postal_code" value={postalCode} />
+                <input type="hidden" name="town" value={town} />
+                <input type="hidden" name="access_method" value={accessMethod} />
+                {accessMethod === "password" && (
+                  <input type="hidden" name="password" value={password} />
+                )}
                 <div className="space-y-1">
                   <Label htmlFor="signup-code">6-digit code</Label>
                   <Input
@@ -242,7 +376,7 @@ export default function SignUpPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setStep("review")}
+                    onClick={() => setStep("access")}
                     className="flex-1 border-[#0D2137] text-[#0D2137]"
                   >
                     Back
@@ -260,16 +394,20 @@ export default function SignUpPage() {
           </Card>
         )}
 
-        {/* Step 4 — Activated */}
         {step === "activated" && (
           <Card className="border-[#E5E7EB]">
-            <CardContent className="pt-6 text-center space-y-3">
+            <CardContent className="pt-6 text-center space-y-4">
               <div className="flex justify-center">
                 <CheckCircle2 className="w-12 h-12 text-[#1A7A4A]" />
               </div>
               <h2 className="text-lg font-semibold text-[#0D2137]">Account activated</h2>
-              <p className="text-sm text-[#6B7280]">You are now signed in.</p>
+              <p className="text-sm text-[#6B7280]">
+                Your account is ready. You are signed in and can access the member portal.
+              </p>
               <Badge variant="outline" className="text-[#1A7A4A] border-[#1A7A4A]">Active</Badge>
+              <Button asChild className="w-full bg-[#1A7A4A] hover:bg-[#145f3a] text-white">
+                <Link href="/member/dashboard">Go to dashboard</Link>
+              </Button>
             </CardContent>
           </Card>
         )}

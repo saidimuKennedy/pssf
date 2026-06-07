@@ -60,6 +60,25 @@ export default function StaffDashboardPage() {
         ))}
       </div>
 
+      {Object.keys(counts.byStatus).length > 0 && (
+        <div>
+          <h2 className="text-sm font-medium text-gray-700 mb-3">Cases by status</h2>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(counts.byStatus)
+              .sort(([, a], [, b]) => b - a)
+              .map(([status, count]) => (
+                <div
+                  key={status}
+                  className="inline-flex items-center gap-2 bg-white border rounded-lg px-3 py-2"
+                >
+                  <StatusBadge status={status as CaseStatus} />
+                  <span className="text-sm font-semibold text-[#0D2137]">{count}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
       {overdue.length > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
           <div className="flex items-center gap-2 text-amber-800 font-medium mb-2">

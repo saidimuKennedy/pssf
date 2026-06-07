@@ -42,22 +42,27 @@ const RULES = [
   { id: "00000000-0000-0000-0000-000000000021", trigger_event: "TASK_OVERDUE", recipient_type: "EMPLOYER", channel: NotificationChannel.EMAIL, template_ref: "tpl_task_overdue_email" },
   // CASE_REASSIGNED
   { id: "00000000-0000-0000-0000-000000000022", trigger_event: "CASE_REASSIGNED", recipient_type: "PSSF_STAFF", channel: NotificationChannel.PORTAL, template_ref: "tpl_case_reassigned_portal" },
-  // EMPLOYER_APPROVED — add email (spec: all events fire all channels)
-  { id: "00000000-0000-0000-0000-000000000023", trigger_event: "EMPLOYER_APPROVED", recipient_type: "MEMBER", channel: NotificationChannel.EMAIL, template_ref: "tpl_employer_approved_email" },
-  // EMPLOYER_REJECTED — add whatsapp
-  { id: "00000000-0000-0000-0000-000000000024", trigger_event: "EMPLOYER_REJECTED", recipient_type: "MEMBER", channel: NotificationChannel.WHATSAPP, template_ref: "tpl_employer_rejected_wa" },
-  // MORE_INFO_REQUIRED — add email
-  { id: "00000000-0000-0000-0000-000000000025", trigger_event: "MORE_INFO_REQUIRED", recipient_type: "MEMBER", channel: NotificationChannel.EMAIL, template_ref: "tpl_more_info_required_email" },
-  // PAYMENT_PROCESSING — add email
-  { id: "00000000-0000-0000-0000-000000000026", trigger_event: "PAYMENT_PROCESSING", recipient_type: "MEMBER", channel: NotificationChannel.EMAIL, template_ref: "tpl_payment_processing_email" },
-  // CASE_COMPLETED — add email
-  { id: "00000000-0000-0000-0000-000000000027", trigger_event: "CASE_COMPLETED", recipient_type: "MEMBER", channel: NotificationChannel.EMAIL, template_ref: "tpl_case_completed_email" },
-  // CASE_REJECTED — add whatsapp
-  { id: "00000000-0000-0000-0000-000000000028", trigger_event: "CASE_REJECTED", recipient_type: "MEMBER", channel: NotificationChannel.WHATSAPP, template_ref: "tpl_case_rejected_wa" },
+] as const
+
+/** Legacy extra channel rules removed when aligning to 06_notification_design.md (22 rules). */
+const REMOVED_RULE_IDS = [
+  "00000000-0000-0000-0000-000000000023",
+  "00000000-0000-0000-0000-000000000024",
+  "00000000-0000-0000-0000-000000000025",
+  "00000000-0000-0000-0000-000000000026",
+  "00000000-0000-0000-0000-000000000027",
+  "00000000-0000-0000-0000-000000000028",
 ] as const
 
 async function seed() {
   console.log("Seeding notification rules...")
+
+  const removed = await prisma.notificationRule.deleteMany({
+    where: { id: { in: [...REMOVED_RULE_IDS] } },
+  })
+  if (removed.count > 0) {
+    console.log(`Removed ${removed.count} legacy notification rule(s).`)
+  }
 
   for (const rule of RULES) {
     await prisma.notificationRule.upsert({
@@ -71,8 +76,11 @@ async function seed() {
         is_active: true,
       },
       update: {
-        is_active: true,
+        trigger_event: rule.trigger_event,
+        recipient_type: rule.recipient_type,
+        channel: rule.channel,
         template_ref: rule.template_ref,
+        is_active: true,
       },
     })
   }

@@ -282,9 +282,32 @@ export async function reassignCase(
   newAssigneeId: string,
   actorId: string
 ): Promise<void> {
+  const caseRecord = await prisma.case.findUniqueOrThrow({
+    where: { id: caseId },
+    select: { reference: true, type: true },
+  })
+
+  const actor = await prisma.user.findUnique({
+    where: { id: actorId },
+    select: { email: true },
+  })
+
   await prisma.case.update({
     where: { id: caseId },
     data: { assigned_to: newAssigneeId },
+  })
+
+  const { dispatch } = await import("@/lib/notifications/dispatch")
+  await dispatch({
+    case_id: caseId,
+    recipient_id: newAssigneeId,
+    recipient_type: "PSSF_STAFF",
+    trigger_event: "CASE_REASSIGNED",
+    variables: {
+      case_reference: caseRecord.reference,
+      case_type_label: caseRecord.type.replace(/_/g, " "),
+      reassigned_by: actor?.email ?? actorId,
+    },
   })
 }
 

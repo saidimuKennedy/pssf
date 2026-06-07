@@ -5,6 +5,7 @@ import { sendWhatsApp } from "./channels/whatsapp"
 import { sendEmail } from "./channels/email"
 import { sendPortal } from "./channels/portal"
 import { resolvePortalMessage, resolveWhatsAppMessage } from "./templates"
+import { resolveRecipientIds } from "./resolve-recipients"
 
 export interface NotificationPayload {
   case_id?: string
@@ -84,15 +85,65 @@ async function dispatchToChannel(
   }
 }
 
+type NotificationRuleRow = {
+  id: string
+  channel: NotificationChannel
+  template_ref: string
+  recipient_type: string
+}
+
+async function sendRuleToRecipient(
+  rule: NotificationRuleRow,
+  payload: NotificationPayload
+): Promise<void> {
+  if (!payload.recipient_id) return
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.recipient_id },
+    select: { id: true, phone: true, email: true },
+  })
+  if (!user) return
+
+  const notificationId = await createPendingRecord(rule, payload)
+
+  let succeeded = false
+  let errorMessage: string | null = null
+
+  try {
+    await withRetry(() => dispatchToChannel(rule.channel, rule, user, payload))
+    succeeded = true
+  } catch (err) {
+    errorMessage = String(err)
+    console.error(`[Notification] Failed after retries for rule ${rule.id}:`, err)
+
+    if (rule.channel !== NotificationChannel.PORTAL) {
+      try {
+        const message = `Notification: ${payload.trigger_event} (Ref: ${payload.variables.case_reference ?? payload.case_id ?? ""})`
+        await sendPortal(user.id, message, payload.case_id)
+      } catch (portalErr) {
+        console.error("[Notification] Portal fallback also failed:", portalErr)
+      }
+    }
+  }
+
+  await updateRecord(notificationId, succeeded, errorMessage)
+
+  await logAuditEvent({
+    case_id: payload.case_id,
+    action: `NOTIFICATION_${succeeded ? "SENT" : "FAILED"}`,
+    actor_id: user.id,
+    metadata: {
+      trigger_event: payload.trigger_event,
+      channel: rule.channel,
+      template_ref: rule.template_ref,
+      error: errorMessage,
+    },
+  })
+}
+
 export async function dispatch(payload: NotificationPayload): Promise<void> {
   try {
     if (!payload.recipient_id) return
-
-    const user = await prisma.user.findUnique({
-      where: { id: payload.recipient_id },
-      select: { id: true, phone: true, email: true },
-    })
-    if (!user) return
 
     const where: Record<string, unknown> = {
       trigger_event: payload.trigger_event,
@@ -103,48 +154,52 @@ export async function dispatch(payload: NotificationPayload): Promise<void> {
     }
 
     const rules = await prisma.notificationRule.findMany({ where })
-
     for (const rule of rules) {
-      const notificationId = await createPendingRecord(rule, payload)
-
-      let succeeded = false
-      let errorMessage: string | null = null
-
-      try {
-        await withRetry(() =>
-          dispatchToChannel(rule.channel, rule, user, payload)
-        )
-        succeeded = true
-      } catch (err) {
-        errorMessage = String(err)
-        console.error(`[Notification] Failed after retries for rule ${rule.id}:`, err)
-
-        if (rule.channel !== NotificationChannel.PORTAL) {
-          try {
-            const message = `Notification: ${payload.trigger_event} (Ref: ${payload.variables.case_reference ?? payload.case_id ?? ""})`
-            await sendPortal(user.id, message, payload.case_id)
-          } catch (portalErr) {
-            console.error("[Notification] Portal fallback also failed:", portalErr)
-          }
-        }
-      }
-
-      await updateRecord(notificationId, succeeded, errorMessage)
-
-      await logAuditEvent({
-        case_id: payload.case_id,
-        action: `NOTIFICATION_${succeeded ? "SENT" : "FAILED"}`,
-        actor_id: user.id,
-        metadata: {
-          trigger_event: payload.trigger_event,
-          channel: rule.channel,
-          template_ref: rule.template_ref,
-          error: errorMessage,
-        },
-      })
+      await sendRuleToRecipient(rule, payload)
     }
   } catch (err) {
     console.error("[Notification] Dispatch error:", err)
+  }
+}
+
+export async function dispatchForCaseEvent(
+  caseId: string,
+  triggerEvent: string,
+  variables: Record<string, string>
+): Promise<void> {
+  try {
+    const caseRecord = await prisma.case.findUnique({
+      where: { id: caseId },
+      include: {
+        member: { select: { user_id: true, full_name: true } },
+      },
+    })
+    if (!caseRecord) return
+
+    const enriched = {
+      ...variables,
+      case_reference: variables.case_reference ?? caseRecord.reference,
+      member_name: variables.member_name ?? caseRecord.member?.full_name ?? "",
+    }
+
+    const rules = await prisma.notificationRule.findMany({
+      where: { trigger_event: triggerEvent, is_active: true },
+    })
+
+    for (const rule of rules) {
+      const recipientIds = await resolveRecipientIds(rule.recipient_type, caseRecord)
+      for (const recipientId of recipientIds) {
+        await sendRuleToRecipient(rule, {
+          case_id: caseId,
+          recipient_id: recipientId,
+          recipient_type: rule.recipient_type,
+          trigger_event: triggerEvent,
+          variables: enriched,
+        })
+      }
+    }
+  } catch (err) {
+    console.error("[Notification] dispatchForCaseEvent error:", err)
   }
 }
 

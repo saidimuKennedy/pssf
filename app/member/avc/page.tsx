@@ -59,7 +59,7 @@ export default function AVCStep1Page() {
 
       if (!validateRes.ok || !validateData.matched) {
         setApiError(
-          "We could not find a record matching your details. Please check your National ID and date of birth."
+          "We could not verify your identity. Please check your National ID and date of birth."
         )
         return
       }

@@ -21,6 +21,11 @@ const Schema = z.object({
   postal_address: z.string().max(255).optional(),
   postal_code: z.string().max(10).optional(),
   town: z.string().max(100).optional(),
+  kra_pin: z
+    .string()
+    .regex(/^[A-Z]\d{9}[A-Z]$/, "KRA PIN must be in format A000000000A")
+    .optional()
+    .or(z.literal("")),
 })
 type FormValues = z.infer<typeof Schema>
 
@@ -70,6 +75,7 @@ export default function EnrolmentStep2Page() {
         postal_address: data.postal_address ?? "",
         postal_code: data.postal_code ?? "",
         town: data.town ?? "",
+        kra_pin: data.kra_pin ?? "",
       })
     }
   }, [reset])
@@ -86,6 +92,10 @@ export default function EnrolmentStep2Page() {
 
   async function onSubmit(values: FormValues) {
     setApiError(null)
+    if (!prefill?.kra_pin && !values.kra_pin?.trim()) {
+      setApiError("KRA PIN is required.")
+      return
+    }
     setLoading(true)
     try {
       const formData = {
@@ -97,6 +107,7 @@ export default function EnrolmentStep2Page() {
         postal_address: values.postal_address || undefined,
         postal_code: values.postal_code || undefined,
         town: values.town || undefined,
+        ...(values.kra_pin ? { kra_pin: values.kra_pin } : {}),
       }
 
       const res = await fetch(`/api/cases/${caseId}`, {
@@ -147,7 +158,22 @@ export default function EnrolmentStep2Page() {
             <LockedField label="Employer" value={prefill?.employer_name} />
             <LockedField label="Date of Employment" value={prefill?.date_of_employment} />
             <LockedField label="Date Joined Scheme" value={prefill?.date_joined_scheme} />
-            <LockedField label="KRA PIN" value={prefill?.kra_pin} />
+            {prefill?.kra_pin ? (
+              <LockedField label="KRA PIN" value={prefill.kra_pin} />
+            ) : (
+              <div className="space-y-1 sm:col-span-2">
+                <Label htmlFor="kra_pin">KRA PIN <span className="text-red-500">*</span></Label>
+                <Input
+                  id="kra_pin"
+                  placeholder="A000000000A"
+                  {...register("kra_pin")}
+                />
+                {errors.kra_pin && (
+                  <p className="text-xs text-red-600">{errors.kra_pin.message}</p>
+                )}
+                <p className="text-xs text-gray-500">Your KRA PIN was not on file — please enter it to continue.</p>
+              </div>
+            )}
           </div>
         </div>
 

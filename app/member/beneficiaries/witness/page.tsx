@@ -40,6 +40,7 @@ export default function BeneficiaryWitnessPage() {
           reset({
             witnessed_by: String(fd.witnessed_by),
             witness_id_number: String(fd.witness_id_number ?? ""),
+            witness_signature: String(fd.witness_signature ?? ""),
             witness_mobile: String(fd.witness_mobile ?? ""),
             witness_date: String(fd.witness_date ?? ""),
           })
@@ -125,6 +126,13 @@ export default function BeneficiaryWitnessPage() {
           <Input {...register("witness_id_number")} />
           {errors.witness_id_number && (
             <p className="text-xs text-red-600">{errors.witness_id_number.message}</p>
+          )}
+        </div>
+        <div className="space-y-1">
+          <Label>Signature (type full name) <span className="text-red-500">*</span></Label>
+          <Input {...register("witness_signature")} placeholder="Full name as signature" />
+          {errors.witness_signature && (
+            <p className="text-xs text-red-600">{errors.witness_signature.message}</p>
           )}
         </div>
         <div className="space-y-1">

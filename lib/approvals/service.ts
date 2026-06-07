@@ -1,6 +1,7 @@
 import { ApprovalType, ApprovalDecision, CaseStatus, Role } from "@prisma/client"
 import { prisma } from "@/lib/db"
-import { transition, TransitionContext } from "@/lib/state-machine/transitions"
+import { transition } from "@/lib/state-machine/transitions"
+import { dispatchForCaseEvent } from "@/lib/notifications/dispatch"
 import { AuthError } from "@/lib/state-machine/guards"
 
 export interface RecordApprovalInput {
@@ -43,7 +44,26 @@ export async function recordEmployerApproval(
     },
   })
 
-  // Transition case
+  if (input.decision === ApprovalDecision.REQUEST_CORRECTION) {
+    if (!input.reason?.trim()) {
+      throw new AuthError("VALIDATION_ERROR", "Correction reason is required")
+    }
+    await transition({
+      caseId: input.caseId,
+      action: "EMPLOYER_REQUEST_CORRECTION",
+      actorId: input.actorId,
+      actorRole: input.actorRole,
+      nextStatus: CaseStatus.DRAFT,
+      reason: input.reason,
+      metadata: { decision: input.decision, correction_reason: input.reason },
+    })
+    await dispatchForCaseEvent(input.caseId, "MORE_INFO_REQUIRED", {
+      info_requested: input.reason,
+      case_type_label: caseRecord.type.replace(/_/g, " "),
+    })
+    return
+  }
+
   const nextStatus =
     input.decision === ApprovalDecision.APPROVED
       ? CaseStatus.EMPLOYER_APPROVED
@@ -55,6 +75,7 @@ export async function recordEmployerApproval(
     actorId: input.actorId,
     actorRole: input.actorRole,
     nextStatus,
+    reason: input.reason,
     metadata: { decision: input.decision },
   })
 }

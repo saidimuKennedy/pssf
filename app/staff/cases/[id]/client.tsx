@@ -10,6 +10,13 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface CaseDocument {
   id: string
@@ -98,6 +105,8 @@ export default function StaffCaseDetailClient({
   const [note, setNote] = useState("")
   const [reason, setReason] = useState("")
   const [actionMsg, setActionMsg] = useState<string | null>(null)
+  const [officers, setOfficers] = useState<{ id: string; email: string | null; role: string }[]>([])
+  const [reassignTo, setReassignTo] = useState("")
   const isSupervisor = userRole === Role.PSSF_SUPERVISOR
   const isClaimCase = data?.type === CaseType.BENEFITS_CLAIM || data?.type === CaseType.DEATH_BENEFITS_CLAIM
 
@@ -112,6 +121,13 @@ export default function StaffCaseDetailClient({
   }, [caseId])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (!isSupervisor) return
+    fetch("/api/staff/officers")
+      .then((r) => r.ok ? r.json() : { officers: [] })
+      .then((d) => setOfficers(d.officers ?? []))
+  }, [isSupervisor])
 
   async function apiCall(fn: () => Promise<Response>, successMsg: string) {
     setActionMsg(null)
@@ -288,9 +304,44 @@ export default function StaffCaseDetailClient({
 
             {/* Supervisor tools */}
             {isSupervisor && (
-              <div className="flex flex-wrap gap-2 pt-1 border-t">
-                <Button size="sm" variant="outline" onClick={() => postAction("reassign", { assigneeId: userId })}>Reassign to me</Button>
-                <Button size="sm" variant="outline" onClick={() => postAction("close")}>Close Case</Button>
+              <div className="space-y-2 pt-1 border-t">
+                <Label className="text-xs">Reassign to officer</Label>
+                <div className="flex gap-2">
+                  <Select value={reassignTo} onValueChange={setReassignTo}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select officer" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {officers.map((o) => (
+                        <SelectItem key={o.id} value={o.id}>
+                          {o.email ?? o.id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!reassignTo}
+                    onClick={() => postAction("reassign", { assigneeId: reassignTo })}
+                  >
+                    Reassign
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={`/api/cases/${caseId}/export`} download>Export</a>
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => postAction("close")}>Close Case</Button>
+                </div>
+              </div>
+            )}
+
+            {!isSupervisor && (
+              <div className="pt-1 border-t">
+                <Button size="sm" variant="outline" asChild>
+                  <a href={`/api/cases/${caseId}/export`} download>Export</a>
+                </Button>
               </div>
             )}
 

@@ -63,7 +63,10 @@ export default function StatementsPage() {
   }
 
   function downloadPdf() {
-    window.print()
+    const params = new URLSearchParams({ period })
+    if (period === "CUSTOM" && from) params.set("from", from)
+    if (period === "CUSTOM" && to) params.set("to", to)
+    router.push(`/member/statements/print?${params}`)
   }
 
   const s = data?.summary
@@ -124,6 +127,9 @@ export default function StatementsPage() {
         <Button variant="outline" onClick={downloadPdf}>Download PDF</Button>
         <Button variant="outline" onClick={() => sendStatement("EMAIL")} disabled={sending === "EMAIL"}>Send to Email</Button>
         <Button variant="outline" onClick={() => sendStatement("WHATSAPP")} disabled={sending === "WHATSAPP"}>Send to WhatsApp</Button>
+        <Button variant="outline" asChild>
+          <Link href="/member/discrepancy?source=statement">Request Clarification</Link>
+        </Button>
         <Button className="bg-[#D97706] hover:bg-[#b45309] text-white" onClick={() => router.push("/member/statements/missing")}>
           Report Missing Contribution
         </Button>

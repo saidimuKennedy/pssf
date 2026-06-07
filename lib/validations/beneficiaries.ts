@@ -77,6 +77,7 @@ export const GuardianSchema = z.object({
 export const WitnessSchema = z.object({
   witnessed_by: z.string().min(1, "Witness name is required"),
   witness_id_number: z.string().min(1, "Witness ID number is required"),
+  witness_signature: z.string().min(1, "Witness signature is required"),
   witness_mobile: kenyanPhone.refine((v) => v !== undefined, "Witness mobile is required"),
   witness_date: z
     .string()

@@ -253,6 +253,18 @@ export async function rejectDocument(
     actor_role: actorRole,
     metadata: { document_id: documentId, document_type: doc.document_type, reason },
   })
+
+  const caseRecord = await prisma.case.findUnique({
+    where: { id: doc.case_id },
+    select: { reference: true },
+  })
+
+  const { dispatchForCaseEvent } = await import("@/lib/notifications/dispatch")
+  await dispatchForCaseEvent(doc.case_id, "DOCUMENT_REJECTED", {
+    document_type_label: doc.document_type.replace(/_/g, " "),
+    rejection_reason: reason,
+    case_reference: caseRecord?.reference ?? "",
+  })
 }
 
 export async function validateSubmissionDocuments(

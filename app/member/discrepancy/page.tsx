@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, Suspense } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -17,7 +17,17 @@ import {
 import { FileUploadSlot } from "@/components/ui/file-upload-slot"
 
 export default function DiscrepancyPage() {
+  return (
+    <Suspense fallback={<p className="text-gray-500 p-8">Loading…</p>}>
+      <DiscrepancyForm />
+    </Suspense>
+  )
+}
+
+function DiscrepancyForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const fromStatement = searchParams.get("source") === "statement"
   const [field, setField] = useState<DiscrepancyField>("NAME")
   const [correct, setCorrect] = useState("")
   const [explanation, setExplanation] = useState("")
@@ -78,7 +88,16 @@ export default function DiscrepancyPage() {
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
-      <h1 className="text-2xl font-bold text-[#0D2137]">Report a Discrepancy</h1>
+      <h1 className="text-2xl font-bold text-[#0D2137]">
+        {fromStatement ? "Request Clarification" : "Report a Discrepancy"}
+      </h1>
+      {fromStatement && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <AlertDescription className="text-blue-800">
+            Use this form to query information on your contribution statement. PSSF will review and respond.
+          </AlertDescription>
+        </Alert>
+      )}
       <div><Label>Field with incorrect information *</Label>
         <Select value={field} onValueChange={(v) => setField(v as DiscrepancyField)}>
           <SelectTrigger><SelectValue /></SelectTrigger>

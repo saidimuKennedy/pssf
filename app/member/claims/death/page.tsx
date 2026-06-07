@@ -37,7 +37,7 @@ export default function DeathClaimStartPage() {
       })
       const data = await res.json()
       if (!data.matched) {
-        setApiError("We could not verify the deceased member record.")
+        setApiError("We could not verify your identity. Please check your National ID and date of birth.")
         return
       }
       sessionStorage.setItem("death_prefill", JSON.stringify(data.member))

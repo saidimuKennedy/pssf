@@ -32,7 +32,7 @@ export default async function EmployerDiscrepanciesPage() {
               const field = fd.field_name as DiscrepancyField
               return (
                 <tr key={c.id}>
-                  <td className="px-4 py-2"><Link href={`/employer/approvals/${c.id}`} className="text-[#1A7A4A] font-mono">{c.reference}</Link></td>
+                  <td className="px-4 py-2"><Link href={`/employer/discrepancies/${c.id}`} className="text-[#1A7A4A] font-mono">{c.reference}</Link></td>
                   <td className="px-4 py-2">{c.member?.full_name}</td>
                   <td className="px-4 py-2">{FIELD_LABELS[field] ?? String(fd.field_name)}</td>
                   <td className="px-4 py-2">{c.submitted_at?.toLocaleDateString() ?? "—"}</td>

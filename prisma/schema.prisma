@@ -129,6 +129,7 @@ model User {
   case_notes     CaseNote[]
   audit_events   AuditEvent[]
   approvals      Approval[]
+  tasks_assigned Task[]           @relation("TaskAssignee")
 
   @@map("users")
 }
@@ -323,6 +324,7 @@ model Task {
   completed_at  DateTime?
 
   case          Case       @relation(fields: [case_id], references: [id])
+  assignee      User?      @relation("TaskAssignee", fields: [assigned_to], references: [id])
 
   @@index([case_id])
   @@index([assigned_to])

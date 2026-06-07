@@ -77,7 +77,10 @@ export async function requestOtpAction(prevState: unknown, formData: FormData) {
     return { error: parsed.error.flatten().fieldErrors.phone?.[0] ?? "Invalid phone number" }
   }
 
-  const { phone } = parsed.data
+  const phone = parsed.data.phone
+  if (!phone) {
+    return { error: "Phone number is required." }
+  }
   const user = await prisma.user.findUnique({ where: { phone } })
   if (!user) return { error: "No account found for this phone number. Please sign up first." }
   if (!user.is_active) return { error: "Account is disabled. Contact support." }

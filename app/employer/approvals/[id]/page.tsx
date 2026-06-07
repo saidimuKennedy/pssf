@@ -3,13 +3,23 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
+import { ArrowLeft, CheckCircle2, XCircle, AlertTriangle, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { FileUploadSlot } from "@/components/ui/file-upload-slot"
 import { AVC_ACTION_LABELS } from "@/lib/avc/journey"
 
 interface CaseData {
@@ -45,6 +55,10 @@ export default function EmployerApprovalDetailPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [showRejectForm, setShowRejectForm] = useState(false)
+  const [showCorrectionModal, setShowCorrectionModal] = useState(false)
+  const [correctionReason, setCorrectionReason] = useState("")
+  const [comments, setComments] = useState("")
+  const [exitDateConfirmed, setExitDateConfirmed] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [officerName, setOfficerName] = useState("")
@@ -65,9 +79,14 @@ export default function EmployerApprovalDetailPage() {
         return
       }
     }
+    if (caseData?.type === "BENEFITS_CLAIM" && !exitDateConfirmed) {
+      setActionError("Please confirm the member's exit date before approving.")
+      return
+    }
     setActionError(null)
     setLoading(true)
     try {
+      const fd = caseData?.form_data ?? {}
       const res = await fetch(`/api/cases/${id}/employer-approve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,11 +94,17 @@ export default function EmployerApprovalDetailPage() {
           officer_name: officerName.trim() || undefined,
           designation: designation.trim() || undefined,
           effective_payroll_month: effectivePayrollMonth || undefined,
+          comments: comments.trim() || undefined,
+          exit_date_confirmed: caseData?.type === "BENEFITS_CLAIM" ? exitDateConfirmed : undefined,
+          confirmed_exit_date:
+            caseData?.type === "BENEFITS_CLAIM" && fd.date_of_leaving
+              ? String(fd.date_of_leaving)
+              : undefined,
         }),
       })
       if (!res.ok) {
         const body = await res.json()
-        setActionError(body.error ?? "Approval failed.")
+        setActionError(typeof body.error === "string" ? body.error : "Approval failed.")
         return
       }
       router.push("/employer/approvals")
@@ -112,6 +137,35 @@ export default function EmployerApprovalDetailPage() {
     }
   }
 
+  async function handleRequestCorrection() {
+    if (correctionReason.trim().length < 10) {
+      setActionError("Please provide a correction reason of at least 10 characters.")
+      return
+    }
+    setActionError(null)
+    setLoading(true)
+    try {
+      const res = await fetch("/api/approvals/employer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          caseId: id,
+          decision: "REQUEST_CORRECTION",
+          reason: correctionReason.trim(),
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json()
+        setActionError(typeof body.error === "string" ? body.error : "Request failed.")
+        return
+      }
+      setShowCorrectionModal(false)
+      router.push("/employer/approvals")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (loadError) {
     return (
       <Alert variant="destructive">
@@ -128,6 +182,8 @@ export default function EmployerApprovalDetailPage() {
   const str = (k: string) => (fd[k] != null && fd[k] !== "" ? String(fd[k]) : null)
   const isPending = caseData.status === "PENDING_EMPLOYER"
   const isAVC = caseData.type === "AVC"
+  const isBenefitsClaim = caseData.type === "BENEFITS_CLAIM"
+  const dateOfLeaving = str("date_of_leaving")
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -141,7 +197,6 @@ export default function EmployerApprovalDetailPage() {
         </div>
       </div>
 
-      {/* Member details */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base text-[#0D2137]">Member Details</CardTitle>
@@ -153,7 +208,6 @@ export default function EmployerApprovalDetailPage() {
         </CardContent>
       </Card>
 
-      {/* Application form data */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base text-[#0D2137]">Application Details</CardTitle>
@@ -181,6 +235,14 @@ export default function EmployerApprovalDetailPage() {
                 label="Method"
                 value={fd.avc_method === "MOBILE_WALLET" ? "Mobile Wallet" : "Payroll Check-off"}
               />
+            </>
+          ) : isBenefitsClaim ? (
+            <>
+              <Row label="Date of Leaving" value={dateOfLeaving} />
+              <Row label="Reason for Leaving" value={str("reason_for_leaving")} />
+              <Row label="Date of Birth" value={str("date_of_birth")} />
+              <Row label="Mobile Number" value={str("mobile_number")} />
+              <Row label="Email" value={str("email")} />
             </>
           ) : (
             <>
@@ -240,7 +302,48 @@ export default function EmployerApprovalDetailPage() {
         </Card>
       )}
 
-      {/* Status */}
+      {isPending && isBenefitsClaim && dateOfLeaving && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base text-[#0D2137]">Exit Confirmation</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-gray-500">
+              Confirm that the member left employment on the date stated in their claim.
+            </p>
+            <Row label="Date of Leaving (from claim)" value={dateOfLeaving} />
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="exit_confirm"
+                checked={exitDateConfirmed}
+                onCheckedChange={(v) => setExitDateConfirmed(Boolean(v))}
+              />
+              <Label htmlFor="exit_confirm" className="text-sm leading-snug cursor-pointer">
+                I confirm that this member&apos;s date of leaving is{" "}
+                <strong>{dateOfLeaving}</strong> as stated in their benefits claim.
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {isPending && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base text-[#0D2137]">Supporting Documents</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FileUploadSlot
+              documentType="SUPPORTING"
+              label="Supporting Letter (optional)"
+              required={false}
+              caseId={id}
+              currentStatus="PENDING"
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {!isPending && (
         <Alert>
           <AlertDescription>
@@ -249,7 +352,6 @@ export default function EmployerApprovalDetailPage() {
         </Alert>
       )}
 
-      {/* Action error */}
       {actionError && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
@@ -257,31 +359,56 @@ export default function EmployerApprovalDetailPage() {
         </Alert>
       )}
 
-      {/* Actions */}
       {isPending && (
         <div className="space-y-4">
           {!showRejectForm ? (
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={loading}
-                onClick={() => setShowRejectForm(true)}
-                className="flex-1 border-red-300 text-red-700 hover:bg-red-50"
-              >
-                <XCircle className="w-4 h-4 mr-2" />
-                Reject
-              </Button>
-              <Button
-                type="button"
-                disabled={loading}
-                onClick={handleApprove}
-                className="flex-1 bg-[#1A7A4A] hover:bg-[#145f3a] text-white"
-              >
-                <CheckCircle2 className="w-4 h-4 mr-2" />
-                {loading ? "Approving…" : "Approve"}
-              </Button>
-            </div>
+            <>
+              <div className="space-y-1">
+                <Label htmlFor="comments">Comments (optional)</Label>
+                <Textarea
+                  id="comments"
+                  rows={2}
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  placeholder="Any additional notes for PSSF…"
+                  className="bg-white"
+                />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loading}
+                  onClick={() => setShowRejectForm(true)}
+                  className="flex-1 min-w-[120px] border-red-300 text-red-700 hover:bg-red-50"
+                >
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Reject
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loading}
+                  onClick={() => {
+                    setActionError(null)
+                    setShowCorrectionModal(true)
+                  }}
+                  className="flex-1 min-w-[120px] border-amber-300 text-amber-800 hover:bg-amber-50"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Request Correction
+                </Button>
+                <Button
+                  type="button"
+                  disabled={loading || (isBenefitsClaim && !exitDateConfirmed)}
+                  onClick={handleApprove}
+                  className="flex-1 min-w-[120px] bg-[#1A7A4A] hover:bg-[#145f3a] text-white"
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  {loading ? "Approving…" : "Approve"}
+                </Button>
+              </div>
+            </>
           ) : (
             <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-4">
               <h3 className="text-sm font-semibold text-red-800">Rejection Reason</h3>
@@ -320,6 +447,45 @@ export default function EmployerApprovalDetailPage() {
           )}
         </div>
       )}
+
+      <Dialog open={showCorrectionModal} onOpenChange={setShowCorrectionModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request Correction</DialogTitle>
+            <DialogDescription>
+              The member will be notified and asked to update their application.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1">
+            <Label htmlFor="correction_reason">What needs to be corrected?</Label>
+            <Textarea
+              id="correction_reason"
+              rows={4}
+              value={correctionReason}
+              onChange={(e) => setCorrectionReason(e.target.value)}
+              placeholder="Describe the issue clearly…"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowCorrectionModal(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={loading || correctionReason.trim().length < 10}
+              onClick={handleRequestCorrection}
+              className="bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              {loading ? "Sending…" : "Send Correction Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

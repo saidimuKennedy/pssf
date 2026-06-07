@@ -18,7 +18,10 @@ const CreateSchema = z.object({
 
 export async function GET(req: NextRequest) {
   const session = await auth()
-  if (!session?.user || session.user.role !== Role.ADMIN) {
+  if (
+    !session?.user ||
+    (session.user.role !== Role.ADMIN && session.user.role !== Role.PSSF_SUPERVISOR)
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

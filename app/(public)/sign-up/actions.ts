@@ -6,8 +6,8 @@ import { generateOtpCode, hashOtp } from "@/auth"
 import { Role } from "@prisma/client"
 import { signIn } from "@/auth"
 import { AuthError } from "next-auth"
-import { redirect } from "next/navigation"
 import { validateMember } from "@/lib/members/service"
+import bcrypt from "bcryptjs"
 
 export type ValidateMemberResult =
   | null
@@ -19,7 +19,7 @@ export type SendOtpResult =
 
 export type ActivateResult =
   | null
-  | { error?: string }
+  | { success?: boolean; error?: string }
 
 const OTP_EXPIRY_SECONDS = 300
 
@@ -36,7 +36,6 @@ async function dispatchOtp(phone: string, code: string): Promise<void> {
   })
 }
 
-// Step 1 — validate national ID and DOB against seed data (mocked in Phase 1)
 export async function validateMemberAction(prevState: unknown, formData: FormData) {
   const parsed = SignUpSchema.safeParse({
     national_id: formData.get("national_id"),
@@ -79,7 +78,6 @@ export async function validateMemberAction(prevState: unknown, formData: FormDat
   }
 }
 
-// Step 3 — send OTP to confirm phone ownership before account creation
 export async function sendSignUpOtpAction(prevState: unknown, formData: FormData) {
   const phone = formData.get("phone") as string
   if (!phone) return { error: "Phone number is required." }
@@ -103,16 +101,26 @@ export async function sendSignUpOtpAction(prevState: unknown, formData: FormData
   return { success: true, expires_in: OTP_EXPIRY_SECONDS }
 }
 
-// Step 4 — verify OTP, create user + member skeleton, start session
 export async function activateAccountAction(prevState: unknown, formData: FormData) {
   const phone = formData.get("phone") as string
   const code = formData.get("code") as string
   const national_id = formData.get("national_id") as string
   const full_name = formData.get("full_name") as string
-  const email = formData.get("email") as string | null
+  const email = (formData.get("email") as string) || null
+  const postal_address = (formData.get("postal_address") as string) || null
+  const postal_code = (formData.get("postal_code") as string) || null
+  const town = (formData.get("town") as string) || null
+  const access_method = (formData.get("access_method") as string) || "otp"
+  const password = (formData.get("password") as string) || null
 
   if (!phone || !code || !national_id || !full_name) {
     return { error: "Missing required fields." }
+  }
+
+  if (access_method === "password") {
+    if (!password || password.length < 8) {
+      return { error: "Password must be at least 8 characters." }
+    }
   }
 
   const otp = await prisma.otpRequest.findFirst({
@@ -134,6 +142,11 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
     return { error: "Invalid OTP." }
   }
 
+  const password_hash =
+    access_method === "password" && password
+      ? bcrypt.hashSync(password, 12)
+      : undefined
+
   const member = await prisma.member.findUnique({ where: { national_id } })
 
   if (member?.user_id) {
@@ -143,6 +156,7 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
         phone,
         email: email || member.email || undefined,
         is_active: true,
+        ...(password_hash ? { password_hash } : {}),
       },
     })
   } else {
@@ -152,6 +166,7 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
         email: email || null,
         role: Role.MEMBER,
         is_active: true,
+        ...(password_hash ? { password_hash } : {}),
       },
     })
     if (member) {
@@ -165,19 +180,25 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
   if (member) {
     await prisma.member.update({
       where: { id: member.id },
-      data: { is_verified: true, mobile_number: phone },
+      data: {
+        is_verified: true,
+        mobile_number: phone,
+        email: email || member.email || undefined,
+        postal_address: postal_address || member.postal_address || undefined,
+        postal_code: postal_code || member.postal_code || undefined,
+        town: town || member.town || undefined,
+      },
     })
   }
 
-  // signIn must run before OTP is marked verified (auth provider requires verified: false)
   try {
     await signIn("otp", { phone, code, redirect: false })
   } catch (e) {
     if (e instanceof AuthError) {
-      redirect("/login?activated=true")
+      return { error: "Account created but sign-in failed. Please sign in manually." }
     }
     throw e
   }
 
-  redirect("/member/dashboard")
+  return { success: true }
 }

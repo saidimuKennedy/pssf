@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { submitCase } from "@/lib/cases/service"
+import { assertRecentOtpVerified } from "@/lib/auth/otp-session"
 import { SubmitCaseSchema } from "@/lib/validations/cases"
 import { prisma } from "@/lib/db"
 import { AuthError } from "@/lib/state-machine/guards"
@@ -27,6 +28,7 @@ export async function POST(
   }
 
   try {
+    await assertRecentOtpVerified(session.user.id)
     const ipAddress = req.headers.get("x-forwarded-for") ?? "unknown"
     await submitCase(id, session.user.id, session.user.role, ipAddress)
     const caseRecord = await prisma.case.findUnique({
@@ -42,7 +44,13 @@ export async function POST(
   } catch (error) {
     if (error instanceof AuthError) {
       const status =
-        error.name === "NOT_FOUND" ? 404 : error.name === "FORBIDDEN" ? 403 : 422
+        error.name === "NOT_FOUND"
+          ? 404
+          : error.name === "FORBIDDEN"
+            ? 403
+            : error.name === "OTP_REQUIRED"
+              ? 422
+              : 422
       return NextResponse.json(
         { error: error.message, code: error.name, details: error.details },
         { status }

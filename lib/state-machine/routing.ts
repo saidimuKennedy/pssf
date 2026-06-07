@@ -2,6 +2,15 @@ import { CaseType, CaseStatus } from "@prisma/client"
 
 export function getInitialRoute(caseType: CaseType, formData: Record<string, unknown>): CaseStatus {
   if (caseType === CaseType.MISSING_CONTRIBUTION) {
+    const contributionType = formData.contribution_type as string | undefined
+    if (
+      contributionType === "EMPLOYER" ||
+      contributionType === "BOTH" ||
+      contributionType === "employer" ||
+      contributionType === "both"
+    ) {
+      return CaseStatus.PENDING_EMPLOYER
+    }
     return CaseStatus.UNDER_REVIEW
   }
 

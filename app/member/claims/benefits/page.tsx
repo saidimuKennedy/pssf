@@ -35,7 +35,7 @@ export default function BenefitsClaimStartPage() {
       })
       const data = await res.json()
       if (!data.matched) {
-        setApiError("We could not verify your identity. Please check your details.")
+        setApiError("We could not verify your identity. Please check your National ID and date of birth.")
         return
       }
       sessionStorage.setItem("benefits_prefill", JSON.stringify(data.member))

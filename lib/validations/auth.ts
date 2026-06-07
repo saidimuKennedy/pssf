@@ -1,11 +1,16 @@
 import { z } from "zod"
 
-export const RequestOtpSchema = z.object({
-  phone: z
-    .string()
-    .min(1, "Phone number is required")
-    .regex(/^\+?[1-9]\d{7,14}$/, "Enter a valid phone number"),
-})
+export const RequestOtpSchema = z
+  .object({
+    phone: z
+      .string()
+      .regex(/^\+?[1-9]\d{7,14}$/, "Enter a valid phone number")
+      .optional(),
+    email: z.string().email("Enter a valid email address").optional(),
+  })
+  .refine((d) => Boolean(d.phone || d.email), {
+    message: "Phone or email is required",
+  })
 
 export const VerifyOtpSchema = z.object({
   identifier: z.string().min(1, "Identifier is required"),
