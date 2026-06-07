@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { requestOtpAction, otpLoginAction, passwordLoginAction, passwordOtpLoginAction } from "./actions"
+import { PssfLogo } from "@/components/pssf-logo"
 import Link from "next/link"
 
 export default function LoginPage() {
@@ -35,10 +36,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Logo + heading */}
         <div className="text-center space-y-1">
-          <div className="inline-flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#1A7A4A]" />
-            <span className="text-xl font-bold text-[#0D2137]">PSSF</span>
-          </div>
+          <PssfLogo priority width={150} height={85} className="mx-auto" />
           <h1 className="text-2xl font-bold text-[#0D2137]">Welcome back</h1>
           <p className="text-sm text-[#6B7280]">Sign in to your account to continue</p>
         </div>

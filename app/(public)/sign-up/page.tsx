@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { validateMemberAction, sendSignUpOtpAction, activateAccountAction } from "./actions"
+import { PssfLogo } from "@/components/pssf-logo"
 import Link from "next/link"
 import { CheckCircle2, Lock } from "lucide-react"
 
@@ -64,10 +65,7 @@ export default function SignUpPage() {
     <main className="min-h-screen flex items-center justify-center bg-[#F5F5F5] px-4 py-12">
       <div className="w-full max-w-lg space-y-6">
         <div className="text-center space-y-1">
-          <div className="inline-flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-[#1A7A4A]" />
-            <span className="text-xl font-bold text-[#0D2137]">PSSF</span>
-          </div>
+          <PssfLogo priority width={150} height={85} className="mx-auto" />
           <h1 className="text-2xl font-bold text-[#0D2137]">Activate your account</h1>
           <p className="text-sm text-[#6B7280]">
             New to the platform? Verify your identity to get started.
@@ -311,6 +309,7 @@ export default function SignUpPage() {
                 </Button>
                 <form action={sendOtp} className="flex-1">
                   <input type="hidden" name="phone" value={phone} />
+                  <input type="hidden" name="email" value={email} />
                   <Button
                     type="submit"
                     disabled={
@@ -331,10 +330,10 @@ export default function SignUpPage() {
         {step === "otp" && memberData && (
           <Card className="border-[#E5E7EB]">
             <CardHeader>
-              <CardTitle className="text-[#0D2137]">Verify your phone</CardTitle>
+              <CardTitle className="text-[#0D2137]">Verify your account</CardTitle>
               <CardDescription>
                 Enter the 6-digit code sent to{" "}
-                <span className="font-medium text-[#111827]">{phone}</span>
+                <span className="font-medium text-[#111827]">{email || phone}</span>
               </CardDescription>
             </CardHeader>
             <CardContent>

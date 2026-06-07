@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PssfLogoMark } from "@/components/landing/navbar"
+import { PssfLogo } from "@/components/pssf-logo"
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -68,10 +68,7 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Logo column */}
           <div className="lg:col-span-1 space-y-3">
-            <div className="flex items-center gap-3">
-              <PssfLogoMark variant="white" />
-            </div>
-            <p className="text-sm font-bold">Public Service Superannuation Fund</p>
+            <PssfLogo variant="onDark" width={140} height={80} />
             <p className="text-xs text-gray-400">Smart Self-Service Platform</p>
             <p className="text-xs text-gray-400 leading-relaxed">
               Empowering public servants with secure, efficient and transparent pension services.

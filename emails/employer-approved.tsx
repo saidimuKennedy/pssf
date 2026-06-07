@@ -1,4 +1,5 @@
 import * as React from "react"
+import { EmailHeader } from "@/emails/header"
 import { Html, Body, Container, Section, Text, Button, Hr } from "@react-email/components"
 
 interface Props {
@@ -13,11 +14,7 @@ export default function EmployerApprovedEmail({ variables }: Props) {
   return (
     <Html>
       <Body style={{ backgroundColor: "#ffffff", fontFamily: "Arial, sans-serif" }}>
-        <Section style={{ backgroundColor: "#1A7A4A", padding: "24px" }}>
-          <Text style={{ color: "#ffffff", fontSize: "20px", fontWeight: "bold", margin: 0 }}>
-            PSSF Smart Self-Service Platform
-          </Text>
-        </Section>
+        <EmailHeader />
         <Container style={{ padding: "32px" }}>
           <Text style={{ fontSize: "16px", color: "#0D2137" }}>Dear Member,</Text>
           <Text style={{ fontSize: "16px", color: "#0D2137" }}>

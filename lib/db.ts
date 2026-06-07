@@ -1,11 +1,20 @@
 import { loadEnvConfig } from "@next/env"
 import { PrismaClient } from "@prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { Pool } from "pg"
 
 loadEnvConfig(process.cwd())
 
 function createPrismaClient() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL!,
+    max: 5,
+    idleTimeoutMillis: 60_000,
+    connectionTimeoutMillis: 10_000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
+  })
+  const adapter = new PrismaPg(pool)
   return new PrismaClient({ adapter })
 }
 

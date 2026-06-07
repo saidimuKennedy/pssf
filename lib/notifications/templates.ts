@@ -196,68 +196,67 @@ interface MetaTemplateEntry {
 }
 
 export const WA_META_TEMPLATES: Record<string, MetaTemplateEntry> = {
-  // AUTHENTICATION — copy-code button; {{1}} = OTP code
+  // UTILITY — body-only OTP delivery (auth-category template failed delivery on unverified number); {{1}} = OTP code
   tpl_otp_wa: {
-    name: "pssf_otp",
-    language: "en",
+    name: "pssf_number",
+    language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.otp_code ?? "" }] },
-      { type: "button", sub_type: "copy_code", index: "0", parameters: [{ type: "text", text: v.otp_code ?? "" }] },
     ],
   },
   // UTILITY notifications — single body parameter = pre-resolved message text
   tpl_employer_approved_wa: {
-    name: "pssf_employer_approved",
-    language: "en",
+    name: "pssf_employe_approved",
+    language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
     ],
   },
   tpl_employer_rejected_wa: {
-    name: "pssf_employer_rejected",
-    language: "en",
+    name: "pssf_rejected_employer",
+    language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }, { type: "text", text: v.rejection_reason ?? "" }] },
     ],
   },
   tpl_more_info_required_wa: {
-    name: "pssf_more_info_required",
-    language: "en",
+    name: "pssf_additional_info_required",
+    language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
     ],
   },
   tpl_case_approved_wa: {
-    name: "pssf_case_approved",
-    language: "en",
+    name: "pss_approved_case",
+    language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
     ],
   },
   tpl_case_rejected_wa: {
     name: "pssf_case_rejected",
-    language: "en",
+    language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }, { type: "text", text: v.rejection_reason ?? "" }] },
     ],
   },
   tpl_payment_processing_wa: {
     name: "pssf_payment_processing",
-    language: "en",
+    language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
     ],
   },
   tpl_case_completed_wa: {
     name: "pssf_case_completed",
-    language: "en",
+    language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
     ],
   },
   tpl_statement_wa: {
-    name: "pssf_statement",
-    language: "en",
+    name: "pssf_payment_statement",
+    language: "en_US",
     components: (v) => [
       { type: "body", parameters: [
         { type: "text", text: v.full_name ?? "" },

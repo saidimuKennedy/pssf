@@ -23,11 +23,23 @@ export type ActivateResult =
 
 const OTP_EXPIRY_SECONDS = 300
 
-async function dispatchOtp(phone: string, code: string): Promise<void> {
+async function dispatchOtp(phone: string, code: string, email?: string | null): Promise<void> {
   if (process.env.PSSF_MOCK_NOTIFICATIONS === "true") {
-    console.log(`[MOCK OTP sign-up] phone=${phone} code=${code}`)
+    console.log(`[MOCK OTP sign-up] phone=${phone} email=${email ?? "-"} code=${code}`)
     return
   }
+  // Email is the reliable OTP channel; send there when the applicant provided one.
+  if (email) {
+    const { sendOtpEmail } = await import("@/lib/notifications/send-otp-email")
+    await sendOtpEmail(email, code)
+    return
+  }
+  // No email: in development the code is the fixed DEV_OTP — log and proceed.
+  if (process.env.NODE_ENV === "development") {
+    console.warn(`[OTP sign-up] Dev mode: no email channel. code=${code} phone=${phone}`)
+    return
+  }
+  // Production last resort: WhatsApp.
   const { sendWhatsApp } = await import("@/lib/notifications/channels/whatsapp")
   await sendWhatsApp({
     recipient_phone: phone,
@@ -80,6 +92,7 @@ export async function validateMemberAction(prevState: unknown, formData: FormDat
 
 export async function sendSignUpOtpAction(prevState: unknown, formData: FormData) {
   const phone = formData.get("phone") as string
+  const email = (formData.get("email") as string) || null
   if (!phone) return { error: "Phone number is required." }
 
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
@@ -89,14 +102,22 @@ export async function sendSignUpOtpAction(prevState: unknown, formData: FormData
   if (recentCount >= 5) return { error: "Too many requests. Try again in an hour." }
 
   const code = generateOtpCode()
-  await prisma.otpRequest.create({
+  const otpRequest = await prisma.otpRequest.create({
     data: {
       phone,
       code: hashOtp(code),
       expires_at: new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000),
     },
   })
-  await dispatchOtp(phone, code)
+
+  // Roll back the request row if delivery fails, so failed sends don't burn the rate limit.
+  try {
+    await dispatchOtp(phone, code, email)
+  } catch (err) {
+    await prisma.otpRequest.delete({ where: { id: otpRequest.id } }).catch(() => {})
+    console.error(`[OTP sign-up] dispatch failed for ${phone}: ${err instanceof Error ? err.message : err}`)
+    return { error: "Could not send your verification code. Please try again." }
+  }
 
   return { success: true, expires_in: OTP_EXPIRY_SECONDS }
 }
@@ -149,32 +170,44 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
 
   const member = await prisma.member.findUnique({ where: { national_id } })
 
-  if (member?.user_id) {
-    await prisma.user.update({
-      where: { id: member.user_id },
-      data: {
-        phone,
-        email: email || member.email || undefined,
-        is_active: true,
-        ...(password_hash ? { password_hash } : {}),
-      },
-    })
-  } else {
-    const user = await prisma.user.create({
-      data: {
-        phone,
-        email: email || null,
-        role: Role.MEMBER,
-        is_active: true,
-        ...(password_hash ? { password_hash } : {}),
-      },
-    })
-    if (member) {
-      await prisma.member.update({
-        where: { id: member.id },
-        data: { user_id: user.id, is_verified: true },
+  try {
+    if (member?.user_id) {
+      await prisma.user.update({
+        where: { id: member.user_id },
+        data: {
+          phone,
+          email: email || member.email || undefined,
+          is_active: true,
+          ...(password_hash ? { password_hash } : {}),
+        },
       })
+    } else {
+      const user = await prisma.user.create({
+        data: {
+          phone,
+          email: email || null,
+          role: Role.MEMBER,
+          is_active: true,
+          ...(password_hash ? { password_hash } : {}),
+        },
+      })
+      if (member) {
+        await prisma.member.update({
+          where: { id: member.id },
+          data: { user_id: user.id, is_verified: true },
+        })
+      }
     }
+  } catch (e) {
+    // P2002 = unique constraint (email or phone already belongs to another account).
+    if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002") {
+      const target = (e as { meta?: { target?: string[] | string } }).meta?.target
+      const field = Array.isArray(target) ? target.join(", ") : String(target ?? "")
+      if (field.includes("email")) return { error: "This email is already linked to another account. Use a different email." }
+      if (field.includes("phone")) return { error: "This phone number is already linked to another account. Use a different number." }
+      return { error: "These details are already linked to another account." }
+    }
+    throw e
   }
 
   if (member) {

@@ -14,7 +14,11 @@ const OTP_EXPIRY_SECONDS = 300
 
 async function sendOtpEmail(to: string, code: string): Promise<void> {
   const { Resend } = await import("resend")
+  const { render } = await import("@react-email/render")
+  const { default: OtpEmail } = await import("@/emails/otp")
+  const React = await import("react")
   const resend = new Resend(process.env.RESEND_API_KEY)
+  const html = await render(React.createElement(OtpEmail, { variables: { otp_code: code } }))
   const MAX_ATTEMPTS = 3
   let lastErr: unknown
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -22,8 +26,8 @@ async function sendOtpEmail(to: string, code: string): Promise<void> {
       const { data, error } = await resend.emails.send({
         from: process.env.RESEND_FROM_EMAIL ?? "noreply@pssf.go.ke",
         to,
-        subject: "Your PSSF Verification Code",
-        html: `<p>Your PSSF verification code is <strong>${code}</strong>. It expires in 5 minutes. Do not share this code with anyone.</p>`,
+        subject: "Your sign-in verification code",
+        html,
       })
       if (error) throw new Error(`Resend error: ${error.message}`)
       console.log(`[OTP] Email sent id=${data?.id} to=${to} (attempt ${attempt})`)
@@ -50,25 +54,30 @@ async function dispatchOtp(identifier: string, code: string, isEmail: boolean, f
   }
   if (isEmail) {
     await sendOtpEmail(identifier, code)
-  } else {
-    try {
-      const { sendWhatsApp } = await import("@/lib/notifications/channels/whatsapp")
-      await sendWhatsApp({
-        recipient_phone: identifier,
-        template_ref: "tpl_otp_wa",
-        variables: { otp_code: code },
-      })
-    } catch (err) {
-      if (fallbackEmail) {
-        console.warn(`[OTP] WhatsApp send failed, falling back to email: ${err instanceof Error ? err.message : err}`)
-        await sendOtpEmail(fallbackEmail, code)
-      } else if (process.env.NODE_ENV === "development") {
-        console.warn(`[OTP] Dev mode: WhatsApp failed and no fallback email. code=${code} phone=${identifier}`, err)
-      } else {
-        throw err
-      }
-    }
+    return
   }
+
+  // Phone login: email is the reliable OTP channel (WhatsApp authentication templates
+  // fail delivery / approval on the current number). Send by email when we have one.
+  if (fallbackEmail) {
+    await sendOtpEmail(fallbackEmail, code)
+    return
+  }
+
+  // No email on file. In development the code is the fixed DEV_OTP — log it and
+  // let the flow succeed so member login is testable without a delivery channel.
+  if (process.env.NODE_ENV === "development") {
+    console.warn(`[OTP] Dev mode: member has no email channel. code=${code} phone=${identifier}`)
+    return
+  }
+
+  // Production last resort: attempt WhatsApp.
+  const { sendWhatsApp } = await import("@/lib/notifications/channels/whatsapp")
+  await sendWhatsApp({
+    recipient_phone: identifier,
+    template_ref: "tpl_otp_wa",
+    variables: { otp_code: code },
+  })
 }
 
 export async function requestOtpAction(prevState: unknown, formData: FormData) {

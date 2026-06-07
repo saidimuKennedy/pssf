@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { PssfLogo } from "@/components/pssf-logo"
 
 export function PssfLogoMark({
   className,
@@ -85,16 +86,8 @@ export function Navbar() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E5E7EB]">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex min-w-0 items-center gap-3">
-          <PssfLogoMark />
-          <div className="min-w-0 hidden sm:block">
-            <p className="truncate text-sm font-bold text-[#0D2137] leading-tight">
-              Public Service Superannuation Fund
-            </p>
-            <p className="truncate text-xs text-[#6B7280]">
-              Smart Self-Service Platform
-            </p>
-          </div>
+        <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="PSSF home">
+          <PssfLogo priority width={78} height={44} />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-6" aria-label="Main">

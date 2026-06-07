@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { formatKes } from "@/lib/format"
+import { PssfLogo } from "@/components/pssf-logo"
 
 type Period = "CURRENT_YEAR" | "LAST_12" | "LAST_24" | "FULL" | "CUSTOM"
 
@@ -47,7 +48,7 @@ function StatementPrintContent() {
               <p className="text-xs text-gray-500 uppercase tracking-wider">Public Service Superannuation Fund</p>
               <h1 className="text-2xl font-bold text-[#0D2137] mt-1">Contribution Statement</h1>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#1A7A4A] print:block" aria-hidden />
+            <PssfLogo width={106} height={60} priority />
           </div>
         </header>
 

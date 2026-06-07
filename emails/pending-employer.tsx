@@ -1,4 +1,5 @@
 import * as React from "react"
+import { EmailHeader } from "@/emails/header"
 import {
   Html,
   Body,
@@ -21,11 +22,7 @@ export default function PendingEmployerEmail({ variables }: Props) {
   return (
     <Html>
       <Body style={{ backgroundColor: "#ffffff", fontFamily: "Arial, sans-serif" }}>
-        <Section style={{ backgroundColor: "#1A7A4A", padding: "24px" }}>
-          <Text style={{ color: "#ffffff", fontSize: "20px", fontWeight: "bold", margin: 0 }}>
-            PSSF Smart Self-Service Platform
-          </Text>
-        </Section>
+        <EmailHeader />
         <Container style={{ padding: "32px" }}>
           <Text style={{ fontSize: "16px", color: "#0D2137" }}>
             Dear {sub("[employer_name]", variables)} HR Team,
