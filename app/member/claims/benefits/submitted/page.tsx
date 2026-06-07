@@ -7,7 +7,7 @@ import { StepIndicator } from "@/components/ui/step-indicator"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Button } from "@/components/ui/button"
 import { BENEFITS_STEPS } from "@/lib/benefits/journey"
-import { CaseStatus } from "@prisma/client"
+import { CaseStatus } from "@/lib/enums"
 
 export default function BenefitsSubmittedPage() {
   const reference = useSearchParams().get("reference") ?? "—"

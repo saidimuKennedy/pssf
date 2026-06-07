@@ -128,8 +128,19 @@ export const authConfig = {
         token.id = user.id
         token.role = user.role as Role
         token.phone = user.phone ?? null
-        token.employer_id = user.employer_id ?? null
-        token.member_id = user.member_id ?? null
+
+        // Look up employer_id and member_id — the authorize() functions don't return them.
+        const officer = await prisma.employerOfficer.findFirst({
+          where: { user_id: user.id },
+          select: { employer_id: true },
+        })
+        token.employer_id = officer?.employer_id ?? null
+
+        const member = await prisma.member.findUnique({
+          where: { user_id: user.id },
+          select: { id: true },
+        })
+        token.member_id = member?.id ?? null
 
         // Staff sessions are shorter — encode expiry in token
         if (STAFF_ROLES.includes(user.role as Role)) {

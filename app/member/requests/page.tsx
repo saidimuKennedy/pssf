@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { CaseStatus, CaseType } from "@prisma/client"
+import { CaseStatus, CaseType } from "@/lib/enums"
 
 interface CaseRow {
   id: string

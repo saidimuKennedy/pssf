@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Role } from "@prisma/client"
+import { Role } from "@/lib/enums"
 
 interface UserRow { id: string; name: string; email: string; phone: string; role: Role; is_active: boolean; created_at: string }
 

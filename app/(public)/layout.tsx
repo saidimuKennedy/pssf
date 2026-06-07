@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen flex flex-col font-[Inter,system-ui,-apple-system,sans-serif]">
+    <div className="min-h-screen flex flex-col">
       {children}
     </div>
   )

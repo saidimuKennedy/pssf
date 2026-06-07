@@ -1182,9 +1182,9 @@ async function main() {
   console.log("✓ E1/E2 cases seeded")
 
   // ── Kennedy Test Credentials ──────────────────────────────────────────────
-  // Member  : phone +254704696287  → WhatsApp OTP + all case notifications
-  //           email waruirukennedy2@gmail.com → email case notifications
-  // Staff   : kennedy.officer@pssf.go.ke  / Kennedy@1234  (PSSF_OFFICER)
+  // Member  : phone +254704696287  → WhatsApp OTP + case notifications via portal/WhatsApp
+  //           email is intentionally null so OTP email delivery isn't blocked by Resend sender limits
+  // Staff   : waruirukennedy2@gmail.com / Kennedy@1234  (PSSF_OFFICER) — OTP delivered to real inbox
   // Employer: kennedy.employer@pssf.go.ke / Kennedy@1234  (can approve Kennedy's cases)
   // Admin   : kennedy.admin@pssf.go.ke    / Kennedy@1234
 
@@ -1217,12 +1217,14 @@ async function main() {
     },
   })
 
+  // Officer login email is waruirukennedy2@gmail.com so OTP is deliverable via Resend test sender.
+  // Upsert by id (not email) so the where clause works regardless of prior email value.
   await prisma.user.upsert({
-    where: { email: "kennedy.officer@pssf.go.ke" },
-    update: {},
+    where: { id: "usr-kenOff-000-0000-000000000001" },
+    update: { email: "waruirukennedy2@gmail.com", password_hash: HASH("Kennedy@1234"), is_active: true },
     create: {
       id: "usr-kenOff-000-0000-000000000001",
-      email: "kennedy.officer@pssf.go.ke",
+      email: "waruirukennedy2@gmail.com",
       password_hash: HASH("Kennedy@1234"),
       role: Role.PSSF_OFFICER,
       is_active: true,
@@ -1243,11 +1245,11 @@ async function main() {
 
   const kennedyMemberUser = await prisma.user.upsert({
     where: { phone: "+254704696287" },
-    update: { email: "waruirukennedy2@gmail.com", is_active: true },
+    update: { email: null, is_active: true },
     create: {
       id: "usr-kenMem-000-0000-000000000001",
       phone: "+254704696287",
-      email: "waruirukennedy2@gmail.com",
+      email: null,
       role: Role.MEMBER,
       is_active: true,
     },

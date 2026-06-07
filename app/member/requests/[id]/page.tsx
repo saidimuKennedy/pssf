@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { CaseStatus } from "@prisma/client"
+import { CaseStatus } from "@/lib/enums"
 
 type DocumentStatus = "PENDING" | "UPLOADED" | "UNDER_REVIEW" | "VERIFIED" | "REJECTED"
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { Role, CaseStatus, CaseType } from "@prisma/client"
+import { Role, CaseStatus, CaseType } from "@/lib/enums"
 import { CaseTimeline, type TimelineEntry } from "@/components/ui/case-timeline"
 import { StatusBadge, CASE_TYPE_LABELS } from "@/components/ui/status-badge"
 import { Button } from "@/components/ui/button"
@@ -44,6 +44,44 @@ interface CaseDetail {
   status_history: TimelineEntry[]
   approvals: Approval[]
   notes: { id: string; content: string; created_at: string }[]
+}
+
+function formatKey(key: string): string {
+  return key
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function formatValue(value: unknown): string {
+  if (value === null || value === undefined) return "—"
+  if (typeof value === "boolean") return value ? "Yes" : "No"
+  if (typeof value === "string") {
+    // ISO date
+    if (/^\d{4}-\d{2}-\d{2}(T|$)/.test(value)) {
+      const d = new Date(value)
+      return isNaN(d.getTime()) ? value : d.toLocaleDateString("en-KE", { year: "numeric", month: "long", day: "numeric" })
+    }
+    // SCREAMING_SNAKE → Title Case
+    if (/^[A-Z_]+$/.test(value)) return value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+    return value
+  }
+  if (typeof value === "number") return value.toLocaleString()
+  return String(value)
+}
+
+function FormDataDisplay({ data }: { data: Record<string, unknown> }) {
+  const entries = Object.entries(data).filter(([, v]) => v !== null && v !== undefined && v !== "")
+  if (entries.length === 0) return <p className="text-sm text-gray-400">No data</p>
+  return (
+    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+      {entries.map(([key, value]) => (
+        <div key={key} className="min-w-0">
+          <dt className="text-xs font-medium text-gray-500 uppercase tracking-wide">{formatKey(key)}</dt>
+          <dd className="mt-0.5 text-sm text-gray-900 break-words">{formatValue(value)}</dd>
+        </div>
+      ))}
+    </dl>
+  )
 }
 
 export default function StaffCaseDetailClient({
@@ -147,7 +185,7 @@ export default function StaffCaseDetailClient({
         <div className="md:col-span-2 space-y-6">
           <section className="bg-white border rounded-lg p-4">
             <h2 className="font-medium mb-3">Case data</h2>
-            <pre className="text-xs bg-gray-50 p-3 rounded overflow-auto max-h-64">{JSON.stringify(data.form_data, null, 2)}</pre>
+            <FormDataDisplay data={data.form_data} />
           </section>
 
           <section className="bg-white border rounded-lg p-4">

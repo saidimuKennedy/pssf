@@ -7,7 +7,7 @@ import { StepIndicator } from "@/components/ui/step-indicator"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { BENEFICIARY_STEPS } from "@/lib/beneficiaries/journey"
-import { CaseStatus } from "@prisma/client"
+import { CaseStatus } from "@/lib/enums"
 
 export default function BeneficiarySubmittedPage() {
   const searchParams = useSearchParams()

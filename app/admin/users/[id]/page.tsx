@@ -5,7 +5,7 @@ import { useParams } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Role } from "@prisma/client"
+import { Role } from "@/lib/enums"
 
 export default function AdminUserDetailPage() {
   const { id } = useParams()

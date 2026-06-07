@@ -7,7 +7,7 @@ import { StepIndicator } from "@/components/ui/step-indicator"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { AVC_STEPS, submittedNextSteps } from "@/lib/avc/journey"
-import { CaseStatus } from "@prisma/client"
+import { CaseStatus } from "@/lib/enums"
 
 export default function AVCSubmittedPage() {
   const searchParams = useSearchParams()

@@ -6,7 +6,7 @@ import { useParams } from "next/navigation"
 import { CaseTimeline, type TimelineEntry } from "@/components/ui/case-timeline"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { FIELD_LABELS, type DiscrepancyField } from "@/lib/validations/discrepancy"
-import { CaseStatus } from "@prisma/client"
+import { CaseStatus } from "@/lib/enums"
 
 export default function DiscrepancyDetailPage() {
   const { id } = useParams()

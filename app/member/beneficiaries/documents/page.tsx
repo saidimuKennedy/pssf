@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { BENEFICIARY_STEPS, backFromDocuments, getSkippedSteps } from "@/lib/beneficiaries/journey"
 import { getChecklist, evaluateCondition } from "@/lib/documents/checklists"
-import { CaseType } from "@prisma/client"
+import { CaseType } from "@/lib/enums"
 
 type DocumentStatus = "PENDING" | "UPLOADED" | "UNDER_REVIEW" | "VERIFIED" | "REJECTED"
 

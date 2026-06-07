@@ -15,20 +15,13 @@
 
 | Role | Login | Password | OTP delivery |
 |------|-------|----------|--------------|
-| **Member** | `+254704696287` | — (OTP only) | WhatsApp to `+254704696287` |
-| **PSSF Officer** | `kennedy.officer@pssf.go.ke` | `Kennedy@1234` | Email to `waruirukennedy2@gmail.com`* |
-| **Employer** | `kennedy.employer@pssf.go.ke` | `Kennedy@1234` | Email to `waruirukennedy2@gmail.com`* |
-| **Admin** | `kennedy.admin@pssf.go.ke` | `Kennedy@1234` | Email to `waruirukennedy2@gmail.com`* |
+| **Member** | `+254704696287` | — (OTP only) | WhatsApp to `+254704696287` (falls back to portal) |
+| **PSSF Officer** | `waruirukennedy2@gmail.com` | `Kennedy@1234` | Email to `waruirukennedy2@gmail.com` |
+| **Employer** | `kennedy.employer@pssf.go.ke` | `Kennedy@1234` | Email to `kennedy.employer@pssf.go.ke`* |
+| **Admin** | `kennedy.admin@pssf.go.ke` | `Kennedy@1234` | Email to `kennedy.admin@pssf.go.ke`* |
 
-> *Staff email OTP goes to the login email address. To receive it on `waruirukennedy2@gmail.com`,
-> run this once after seeding — it changes the staff login email to your real address:
-> ```bash
-> npx prisma db execute --stdin <<'SQL'
-> UPDATE "User" SET email = 'waruirukennedy2@gmail.com' WHERE email = 'kennedy.officer@pssf.go.ke';
-> SQL
-> ```
-> Then log in with `waruirukennedy2@gmail.com` / `Kennedy@1234`.
-> To revert: swap the values back.
+> *Employer and Admin OTP emails go to addresses Resend can't deliver to in test mode.
+> In dev, enter **`123456`** — the code is fixed in development regardless of delivery.
 
 **Member details** (for sign-up / validate identity):
 - National ID: `70469628`
@@ -38,16 +31,40 @@
 
 ---
 
+## Dev OTP shortcut
+
+In `NODE_ENV=development`, the OTP code is **always `123456`**. You don't need to wait for delivery — just type `123456` in the OTP field. This works for both member (WhatsApp) and staff (email) login.
+
+---
+
 ## Session Cookie (needed for curl tests)
 
-Log in at `http://localhost:3000/login` as any staff account, then:
+**Option A — browser:** Log in at `http://localhost:3000/login`, open DevTools → Network → any `/api/...` request, copy the `Cookie` header value.
 
-1. Open DevTools → Network → any `/api/...` request
-2. Copy the `Cookie` request header value
-3. Set it: `COOKIE="authjs.session-token=eyJ..."`
+**Option B — mint a token directly (fastest for curl testing):**
 
 ```bash
+# Run once — prints OFFICER and EMPLOYER tokens
+npx tsx -e "
+import { encode } from '@auth/core/jwt'
+const SECRET = 'rKpsFCJBzehC/r9JtGKk5VOTODAr4b4BZZ0fpW1riO8='
+const salt = 'authjs.session-token'
+const exp = Math.floor(Date.now() / 1000) + 4 * 60 * 60
+
+Promise.all([
+  encode({ token: { id: 'usr-kenOff-000-0000-000000000001', email: 'kennedy.officer@pssf.go.ke', role: 'PSSF_OFFICER', phone: null, employer_id: null, member_id: null, exp }, secret: SECRET, salt }),
+  encode({ token: { id: 'usr-kenEmp-000-0000-000000000001', email: 'kennedy.employer@pssf.go.ke', role: 'EMPLOYER', phone: null, employer_id: 'emp-ken1-0000-0000-000000000001', member_id: null, exp }, secret: SECRET, salt }),
+]).then(([officer, employer]) => {
+  console.log('OFFICER_TOKEN=' + officer)
+  console.log('EMPLOYER_TOKEN=' + employer)
+})
+"
+```
+
+Then:
+```bash
 BASE="http://localhost:3000"
+COOKIE="authjs.session-token=<paste token here>"
 ```
 
 ---
@@ -88,9 +105,9 @@ Steps:
 **What it tests:** Resend email OTP delivery for 2FA.
 
 1. Open `http://localhost:3000/login` → Staff/Email tab
-2. Enter `waruirukennedy2@gmail.com` (or `kennedy.officer@pssf.go.ke`) + `Kennedy@1234`
-3. Check inbox → subject: *Your PSSF Verification Code*
-4. Enter code → redirects to `/staff/dashboard`
+2. Enter `waruirukennedy2@gmail.com` + `Kennedy@1234`
+3. Check `waruirukennedy2@gmail.com` inbox → subject: *Your PSSF Verification Code*
+4. Enter code (or just `123456` in dev) → redirects to `/staff/dashboard`
 
 ---
 

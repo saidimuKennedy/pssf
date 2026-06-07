@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { CaseType } from "@prisma/client"
+import { CaseType } from "@/lib/enums"
 import { StepIndicator } from "@/components/ui/step-indicator"
 import { FileUploadSlot } from "@/components/ui/file-upload-slot"
 import { Button } from "@/components/ui/button"

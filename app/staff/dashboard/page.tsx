@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { CaseStatus, CaseType } from "@prisma/client"
+import { CaseStatus, CaseType } from "@/lib/enums"
 import { StatusBadge, CASE_TYPE_LABELS } from "@/components/ui/status-badge"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle } from "lucide-react"

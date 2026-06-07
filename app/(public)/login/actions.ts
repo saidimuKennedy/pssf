@@ -34,6 +34,12 @@ async function sendOtpEmail(to: string, code: string): Promise<void> {
       if (attempt < MAX_ATTEMPTS) await new Promise((r) => setTimeout(r, 500 * attempt))
     }
   }
+  // In dev, the code is always 123456 — log it so the developer can proceed even
+  // when Resend can't deliver to the recipient's address (e.g. unverified sender domain).
+  if (process.env.NODE_ENV === "development") {
+    console.warn(`[OTP] Dev mode: email delivery failed but code is known. code=${code} to=${to}`)
+    return
+  }
   throw lastErr
 }
 

@@ -7,7 +7,7 @@ import { StepIndicator } from "@/components/ui/step-indicator"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { Button } from "@/components/ui/button"
 import { DEATH_STEPS } from "@/lib/death-benefits/journey"
-import { CaseStatus } from "@prisma/client"
+import { CaseStatus } from "@/lib/enums"
 
 export default function DeathSubmittedPage() {
   const reference = useSearchParams().get("reference") ?? "—"
