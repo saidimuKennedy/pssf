@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useActionState } from "react"
+import { useState, useActionState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,15 +22,13 @@ export default function LoginPage() {
   const [passwordState, submitPassword, passwordPending] = useActionState(passwordLoginAction, null)
   const [staffOtpState, submitStaffOtp, staffOtpPending] = useActionState(passwordOtpLoginAction, null)
 
-  // Advance phone step when OTP sent
-  const handleOtpRequestSuccess = () => {
+  useEffect(() => {
     if (otpRequestState?.success) setPhoneStep("otp")
-  }
+  }, [otpRequestState])
 
-  // Advance staff step when credentials verified
-  const handlePasswordSuccess = () => {
+  useEffect(() => {
     if (passwordState?.success) setStaffStep("otp")
-  }
+  }, [passwordState])
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#F5F5F5] px-4">
@@ -64,7 +62,6 @@ export default function LoginPage() {
                     action={async (fd) => {
                       setPhoneValue(fd.get("phone") as string)
                       await requestOtp(fd)
-                      handleOtpRequestSuccess()
                     }}
                     className="space-y-4"
                   >
@@ -146,7 +143,6 @@ export default function LoginPage() {
                       setStaffEmail(fd.get("email") as string)
                       setStaffPassword(fd.get("password") as string)
                       await submitPassword(fd)
-                      handlePasswordSuccess()
                     }}
                     className="space-y-4"
                   >

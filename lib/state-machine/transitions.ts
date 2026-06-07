@@ -55,20 +55,17 @@ export async function transition(context: TransitionContext): Promise<CaseStatus
   // Validate actor permission
   assertRoleCanPerformAction(actorRole, context.action)
 
-  // Execute atomic transaction — dispatch fires after commit
-  const result = await prisma.$transaction(async (tx) => {
-    // Update case status
-    await (tx as typeof prisma).case.update({
+  // Atomic: only status update + history entry need to be in one transaction
+  await prisma.$transaction([
+    prisma.case.update({
       where: { id: context.caseId },
       data: {
         status: nextStatus,
         updated_at: new Date(),
         submitted_at: context.action === "SUBMIT" ? new Date() : undefined,
       },
-    })
-
-    // Record status history
-    await (tx as typeof prisma).caseStatusHistory.create({
+    }),
+    prisma.caseStatusHistory.create({
       data: {
         case_id: context.caseId,
         from_status: currentStatus,
@@ -76,26 +73,27 @@ export async function transition(context: TransitionContext): Promise<CaseStatus
         changed_by: context.actorId,
         reason: context.reason,
       },
-    })
+    }),
+  ])
 
-    // Generate task for new status
-    if (nextStatus !== currentStatus) {
-      await generateTask(context.caseId, nextStatus)
-    }
+  const result = nextStatus
 
-    // Log audit event
-    await logAuditEvent({
-      case_id: context.caseId,
-      action: context.action,
-      actor_id: context.actorId,
-      actor_role: context.actorRole?.toString(),
-      from_status: currentStatus,
-      to_status: nextStatus,
-      metadata: context.metadata,
-      ip_address: context.ipAddress,
-    })
+  // Post-commit side-effects — not atomic, failures don't roll back the status change
+  if (nextStatus !== currentStatus) {
+    await generateTask(context.caseId, nextStatus).catch((err) =>
+      console.error("[Tasks] generateTask failed:", err)
+    )
+  }
 
-    return nextStatus
+  await logAuditEvent({
+    case_id: context.caseId,
+    action: context.action,
+    actor_id: context.actorId,
+    actor_role: context.actorRole?.toString(),
+    from_status: currentStatus,
+    to_status: nextStatus,
+    metadata: context.metadata,
+    ip_address: context.ipAddress,
   })
 
   // Fire-and-forget dispatch after transaction commits — never blocks transition

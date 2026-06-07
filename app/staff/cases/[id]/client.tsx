@@ -113,25 +113,39 @@ export default function StaffCaseDetailClient({
 
   useEffect(() => { load() }, [load])
 
-  async function pssfAction(decision: string) {
-    const res = await fetch("/api/approvals/pssf", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ caseId, decision, reason, comments: reason }),
-    })
-    if (res.ok) { setActionMsg("Action recorded."); load() }
-    else setActionMsg("Action failed.")
+  async function apiCall(fn: () => Promise<Response>, successMsg: string) {
+    setActionMsg(null)
+    try {
+      const res = await fn()
+      if (res.ok) {
+        setActionMsg(successMsg)
+        load()
+      } else {
+        const body = await res.json().catch(() => ({}))
+        setActionMsg(`Error: ${body.error ?? res.statusText}`)
+      }
+    } catch {
+      setActionMsg("Network error — please try again.")
+    }
   }
 
-  async function trusteeDecision(decision: string) {
-    const res = await fetch("/api/approvals/trustee", {
+  const pssfAction = (decision: string) => apiCall(
+    () => fetch("/api/approvals/pssf", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ caseId, decision, reason, comments: reason }),
-    })
-    if (res.ok) { setActionMsg("Trustee decision recorded."); load() }
-    else setActionMsg("Trustee action failed.")
-  }
+    }),
+    "Action recorded."
+  )
+
+  const trusteeDecision = (decision: string) => apiCall(
+    () => fetch("/api/approvals/trustee", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caseId, decision, reason, comments: reason }),
+    }),
+    "Trustee decision recorded."
+  )
 
   async function docAction(docId: string, action: "verify" | "reject") {
     const url = action === "verify" ? `/api/documents/${docId}/verify` : `/api/documents/${docId}/reject`
@@ -140,15 +154,14 @@ export default function StaffCaseDetailClient({
     load()
   }
 
-  async function postAction(path: string, body?: object) {
-    const res = await fetch(`/api/cases/${caseId}/${path}`, {
+  const postAction = (path: string, body?: object) => apiCall(
+    () => fetch(`/api/cases/${caseId}/${path}`, {
       method: "POST",
       headers: body ? { "Content-Type": "application/json" } : {},
       body: body ? JSON.stringify(body) : undefined,
-    })
-    if (res.ok) { setActionMsg("Updated."); load() }
-    else setActionMsg("Action failed.")
-  }
+    }),
+    "Updated."
+  )
 
   async function addNote() {
     if (!note.trim()) return
@@ -179,7 +192,11 @@ export default function StaffCaseDetailClient({
         <StatusBadge status={data.status} />
       </div>
 
-      {actionMsg && <Alert><AlertDescription>{actionMsg}</AlertDescription></Alert>}
+      {actionMsg && (
+        <Alert variant={actionMsg.startsWith("Error:") || actionMsg.startsWith("Network") ? "destructive" : "default"}>
+          <AlertDescription>{actionMsg}</AlertDescription>
+        </Alert>
+      )}
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
@@ -229,38 +246,59 @@ export default function StaffCaseDetailClient({
         <div className="space-y-4">
           <section className="bg-white border rounded-lg p-4 space-y-3">
             <h2 className="font-medium">Actions</h2>
-            <Textarea placeholder="Reason / comments" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => pssfAction("APPROVED")}>Approve</Button>
-              <Button size="sm" variant="destructive" onClick={() => pssfAction("REJECTED")}>Reject</Button>
-              <Button size="sm" variant="outline" onClick={() => pssfAction("REQUEST_MORE_INFO")}>Request Info</Button>
-              <Button size="sm" variant="outline" onClick={() => postAction("route-to-verification")}>Mark Verified</Button>
-            </div>
+
+            {/* Statuses where PSSF can review */}
+            {(data.status === CaseStatus.UNDER_REVIEW || data.status === CaseStatus.UNDER_VERIFICATION) && (
+              <>
+                <Textarea placeholder="Reason / comments" value={reason} onChange={(e) => setReason(e.target.value)} rows={2} />
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={() => pssfAction("APPROVED")}>Approve</Button>
+                  <Button size="sm" variant="destructive" onClick={() => pssfAction("REJECTED")}>Reject</Button>
+                  {data.status === CaseStatus.UNDER_REVIEW && (
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => pssfAction("REQUEST_MORE_INFO")}>Request Info</Button>
+                      <Button size="sm" variant="outline" onClick={() => postAction("route-to-verification")}>Route to Verification</Button>
+                    </>
+                  )}
+                  {data.status === CaseStatus.UNDER_VERIFICATION && data.type === CaseType.DEATH_BENEFITS_CLAIM && (
+                    <Button size="sm" variant="outline" onClick={() => postAction("route-to-trustee")}>Route to Trustee</Button>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Claim payment flow */}
             {isClaimCase && data.status === CaseStatus.APPROVED && (
               <Button size="sm" className="w-full" onClick={() => postAction("mark-payment-processing")}>Mark Payment Processing</Button>
             )}
             {isClaimCase && data.status === CaseStatus.PAYMENT_PROCESSING && (
-              <Button size="sm" className="w-full" onClick={() => postAction("mark-paid")}>Mark Paid</Button>
+              <Button size="sm" className="w-full" onClick={() => postAction("mark-paid")}>Mark Paid / Completed</Button>
             )}
+
+            {/* Trustee decision — supervisor only */}
+            {isSupervisor && data.status === CaseStatus.AWAITING_TRUSTEE && (
+              <div className="space-y-2 pt-1 border-t">
+                <p className="text-xs font-medium text-purple-700 uppercase tracking-wide">Trustee Decision</p>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => trusteeDecision("APPROVED")}>Trustee Approve</Button>
+                  <Button size="sm" variant="destructive" onClick={() => trusteeDecision("REJECTED")}>Trustee Reject</Button>
+                </div>
+              </div>
+            )}
+
+            {/* Supervisor tools */}
             {isSupervisor && (
-              <>
-                <Button size="sm" variant="outline" className="w-full" onClick={() => postAction("reassign", { assigneeId: userId })}>Reassign to me</Button>
-                <Button size="sm" variant="outline" className="w-full" onClick={() => postAction("close")}>Close Case</Button>
-              </>
+              <div className="flex flex-wrap gap-2 pt-1 border-t">
+                <Button size="sm" variant="outline" onClick={() => postAction("reassign", { assigneeId: userId })}>Reassign to me</Button>
+                <Button size="sm" variant="outline" onClick={() => postAction("close")}>Close Case</Button>
+              </div>
+            )}
+
+            {/* Terminal state notice */}
+            {(data.status === CaseStatus.COMPLETED || data.status === "CLOSED" || data.status === CaseStatus.REJECTED) && (
+              <p className="text-sm text-gray-400 italic">This case is {data.status.toLowerCase()} — no further actions available.</p>
             )}
           </section>
-
-          {isSupervisor && data.status === CaseStatus.AWAITING_TRUSTEE && (
-            <section className="bg-purple-50 border border-purple-200 rounded-lg p-4 space-y-3">
-              <h2 className="font-medium text-purple-900">Trustee Decision</h2>
-              <Button size="sm" onClick={() => trusteeDecision("APPROVED")}>Trustee Approve</Button>
-              <Button size="sm" variant="destructive" onClick={() => trusteeDecision("REJECTED")}>Trustee Reject</Button>
-            </section>
-          )}
-
-          {data.status === CaseStatus.UNDER_VERIFICATION && data.type === CaseType.DEATH_BENEFITS_CLAIM && (
-            <Button size="sm" variant="outline" className="w-full" onClick={() => postAction("route-to-trustee")}>Route to Trustee</Button>
-          )}
 
           <section className="bg-white border rounded-lg p-4 space-y-3">
             <h2 className="font-medium">Notes</h2>

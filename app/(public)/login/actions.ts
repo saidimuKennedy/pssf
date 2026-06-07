@@ -62,6 +62,8 @@ async function dispatchOtp(identifier: string, code: string, isEmail: boolean, f
       if (fallbackEmail) {
         console.warn(`[OTP] WhatsApp send failed, falling back to email: ${err instanceof Error ? err.message : err}`)
         await sendOtpEmail(fallbackEmail, code)
+      } else if (process.env.NODE_ENV === "development") {
+        console.warn(`[OTP] Dev mode: WhatsApp failed and no fallback email. code=${code} phone=${identifier}`, err)
       } else {
         throw err
       }

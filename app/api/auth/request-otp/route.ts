@@ -8,6 +8,7 @@ const OTP_EXPIRY_SECONDS = 300
 const MAX_REQUESTS_PER_HOUR = 5
 
 function generateOtp(): string {
+  if (process.env.NODE_ENV === "development") return "123456"
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
@@ -49,11 +50,19 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  await sendWhatsApp({
-    recipient_phone: phone,
-    template_ref: "tpl_otp_wa",
-    variables: { otp_code: code },
-  })
+  try {
+    await sendWhatsApp({
+      recipient_phone: phone,
+      template_ref: "tpl_otp_wa",
+      variables: { otp_code: code },
+    })
+  } catch (err) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(`[OTP] Dev mode: WhatsApp send failed. code=${code} phone=${phone}`, err)
+    } else {
+      throw err
+    }
+  }
 
   return NextResponse.json({ message: "OTP sent", expires_in: OTP_EXPIRY_SECONDS })
 }
