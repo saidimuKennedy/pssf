@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db"
 import { CaseType } from "@prisma/client"
 import Link from "next/link"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { TableScroll } from "@/components/ui/table-scroll"
 
 export default async function EmployerContributionsPage() {
   const session = await auth()
@@ -20,7 +21,7 @@ export default async function EmployerContributionsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Missing Contribution Queries</h1>
-      <div className="bg-white border rounded-lg overflow-hidden">
+      <TableScroll>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b"><tr>
             <th className="text-left px-4 py-2">Reference</th><th className="text-left px-4 py-2">Member</th><th className="text-left px-4 py-2">Month</th><th className="text-left px-4 py-2">Status</th><th className="text-left px-4 py-2">Action</th>
@@ -40,7 +41,7 @@ export default async function EmployerContributionsPage() {
             })}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </div>
   )
 }

@@ -8,6 +8,8 @@ import { StatusBadge, CASE_TYPE_LABELS } from "@/components/ui/status-badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { TableScroll } from "@/components/ui/table-scroll"
+import { FilterBar } from "@/components/ui/filter-bar"
 
 interface CaseRow {
   id: string
@@ -49,25 +51,25 @@ export default function StaffCasesPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-[#0D2137]">All Cases</h1>
-      <div className="flex flex-wrap gap-3">
-        <Input placeholder="Search reference…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
+      <FilterBar>
+        <Input placeholder="Search reference…" value={search} onChange={(e) => setSearch(e.target.value)} className="sm:max-w-xs" />
         <Button variant="outline" onClick={load}>Search</Button>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-48"><SelectValue placeholder="Type" /></SelectTrigger>
+          <SelectTrigger className="sm:w-48"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All types</SelectItem>
             {Object.entries(CASE_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="sm:w-48"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All statuses</SelectItem>
             {Object.values(CaseStatus).map((s) => <SelectItem key={s} value={s}>{s.replace(/_/g, " ")}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
-      <div className="bg-white border rounded-lg overflow-hidden">
+      </FilterBar>
+      <TableScroll>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b">
             <tr>
@@ -96,7 +98,7 @@ export default function StaffCasesPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </div>
   )
 }

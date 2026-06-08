@@ -128,3 +128,58 @@
     @apply font-sans;
   }
 }
+
+@utility glass-panel {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+@utility glass-panel-dark {
+  background: rgba(13, 33, 55, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+@utility bg-grid-dots {
+  background-image: radial-gradient(rgba(13, 33, 55, 0.05) 1.5px, transparent 1.5px);
+  background-size: 24px 24px;
+}
+
+@utility shadow-premium {
+  box-shadow: 0 10px 30px -5px rgba(13, 33, 55, 0.04), 0 20px 40px -10px rgba(13, 33, 55, 0.06);
+}
+
+@utility shadow-premium-green {
+  box-shadow: 0 10px 30px -5px rgba(26, 122, 74, 0.08), 0 20px 40px -10px rgba(26, 122, 74, 0.12);
+}
+
+@utility animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@utility animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.96);
+  }
+}

@@ -27,6 +27,7 @@ export default function StatementDetailPage() {
     return (
       <section className="bg-white border rounded-lg overflow-hidden">
         <h2 className="px-4 py-3 font-medium border-b bg-gray-50">{title}</h2>
+        <div className="overflow-x-auto [&_th]:whitespace-nowrap [&_td]:whitespace-nowrap">
         <table className="w-full text-sm">
           <thead className="border-b"><tr className="text-left text-gray-500">
             <th className="px-4 py-2">Month</th><th className="px-4 py-2">Amount</th><th className="px-4 py-2">Date Received</th><th className="px-4 py-2">Status</th>
@@ -46,6 +47,7 @@ export default function StatementDetailPage() {
             </tr>
           </tbody>
         </table>
+        </div>
       </section>
     )
   }

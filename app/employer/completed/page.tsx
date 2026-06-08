@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db"
 import { ApprovalType } from "@prisma/client"
 import Link from "next/link"
 import { CASE_TYPE_LABELS } from "@/components/ui/status-badge"
+import { TableScroll } from "@/components/ui/table-scroll"
 
 export default async function EmployerCompletedPage() {
   const session = await auth()
@@ -25,7 +26,7 @@ export default async function EmployerCompletedPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-[#0D2137]">Completed Actions</h1>
-      <div className="bg-white border rounded-lg overflow-hidden">
+      <TableScroll>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b"><tr>
             <th className="text-left px-4 py-2">Reference</th><th className="text-left px-4 py-2">Type</th><th className="text-left px-4 py-2">Member</th><th className="text-left px-4 py-2">Decision</th><th className="text-left px-4 py-2">Date</th>
@@ -42,7 +43,7 @@ export default async function EmployerCompletedPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </div>
   )
 }

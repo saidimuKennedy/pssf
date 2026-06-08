@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import { ChevronDown, Lock, Menu, X } from "lucide-react"
+import { ChevronDown, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -78,30 +78,30 @@ const RESOURCE_LINKS = [
 ]
 
 const NAV_LINK =
-  "text-sm font-medium text-[#0D2137] hover:text-[#1A7A4A] transition-colors"
+  "relative text-sm font-medium text-[#0D2137]/80 hover:text-[#1A7A4A] transition-colors py-1.5 px-0.5 after:absolute after:-bottom-[20px] after:left-0 after:h-0.5 after:w-full after:scale-x-0 after:bg-gradient-to-r after:from-[#1A7A4A] after:to-[#0D9488] after:transition-transform hover:after:scale-x-100"
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E5E7EB]">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200/40 shadow-sm transition-all duration-300">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="PSSF home">
+        <Link href="/" className="flex min-w-0 items-center gap-3 transition-transform hover:scale-102" aria-label="PSSF home">
           <PssfLogo priority width={78} height={44} />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-6" aria-label="Main">
-          <Link href="/" className={cn(NAV_LINK, "border-b-2 border-[#1A7A4A] pb-0.5")}>
+          <Link href="/" className={cn(NAV_LINK, "text-[#1A7A4A] after:scale-x-100 font-semibold")}>
             Home
           </Link>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className={cn(NAV_LINK, "inline-flex items-center gap-1 outline-none")}>
+            <DropdownMenuTrigger className={cn(NAV_LINK, "inline-flex items-center gap-1 outline-none cursor-pointer")}>
               Services <ChevronDown className="size-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-56">
+            <DropdownMenuContent align="center" className="w-56 rounded-xl border border-gray-200/60 bg-white/95 backdrop-blur-md shadow-lg p-1 animate-in fade-in-50 slide-in-from-top-2 duration-150">
               {SERVICE_LINKS.map((item) => (
-                <DropdownMenuItem key={item.href} asChild>
+                <DropdownMenuItem key={item.href} asChild className="rounded-lg hover:bg-gray-50 focus:bg-gray-50 cursor-pointer">
                   <Link href={item.href}>{item.label}</Link>
                 </DropdownMenuItem>
               ))}
@@ -116,12 +116,12 @@ export function Navbar() {
           </a>
 
           <DropdownMenu>
-            <DropdownMenuTrigger className={cn(NAV_LINK, "inline-flex items-center gap-1 outline-none")}>
+            <DropdownMenuTrigger className={cn(NAV_LINK, "inline-flex items-center gap-1 outline-none cursor-pointer")}>
               Resources <ChevronDown className="size-3.5" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="w-52">
+            <DropdownMenuContent align="center" className="w-52 rounded-xl border border-gray-200/60 bg-white/95 backdrop-blur-md shadow-lg p-1 animate-in fade-in-50 slide-in-from-top-2 duration-150">
               {RESOURCE_LINKS.map((item) => (
-                <DropdownMenuItem key={item.label} asChild>
+                <DropdownMenuItem key={item.label} asChild className="rounded-lg hover:bg-gray-50 focus:bg-gray-50 cursor-pointer">
                   <Link href={item.href}>{item.label}</Link>
                 </DropdownMenuItem>
               ))}
@@ -137,15 +137,9 @@ export function Navbar() {
           <Button
             variant="outline"
             asChild
-            className="border-[#0D2137] text-[#0D2137] hover:bg-[#0D2137]/5"
+            className="border-gray-250 text-[#0D2137] hover:bg-gray-50 transition-all rounded-xl h-10 px-4"
           >
             <Link href="/login">Login</Link>
-          </Button>
-          <Button asChild className="bg-[#1A7A4A] hover:bg-[#1A7A4A]/90 text-white">
-            <Link href="/login">
-              <Lock className="size-4" />
-              Access Portal
-            </Link>
           </Button>
         </div>
 
@@ -156,6 +150,7 @@ export function Navbar() {
             size="icon"
             onClick={() => setMobileOpen((o) => !o)}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            className="rounded-xl"
           >
             {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </Button>
@@ -163,19 +158,19 @@ export function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="lg:hidden border-t border-[#E5E7EB] bg-white px-4 py-4 space-y-4">
+        <div className="lg:hidden border-t border-gray-200/40 bg-white/95 backdrop-blur-md px-4 py-6 space-y-4 shadow-xl animate-in fade-in-50 slide-in-from-top-4 duration-200">
           <nav className="flex flex-col gap-3" aria-label="Mobile">
             <Link href="/" className={NAV_LINK} onClick={() => setMobileOpen(false)}>
               Home
             </Link>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+            <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mt-2">
               Services
             </p>
             {SERVICE_LINKS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={cn(NAV_LINK, "pl-2")}
+                className={cn(NAV_LINK, "pl-2 py-1")}
                 onClick={() => setMobileOpen(false)}
               >
                 {item.label}
@@ -187,14 +182,14 @@ export function Navbar() {
             <a href="#about" className={NAV_LINK} onClick={() => setMobileOpen(false)}>
               About PSSF
             </a>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+            <p className="text-xs font-bold uppercase tracking-wide text-gray-400 mt-2">
               Resources
             </p>
             {RESOURCE_LINKS.map((item) => (
               <Link
                 key={item.label}
                 href={item.href}
-                className={cn(NAV_LINK, "pl-2")}
+                className={cn(NAV_LINK, "pl-2 py-1")}
                 onClick={() => setMobileOpen(false)}
               >
                 {item.label}
@@ -204,16 +199,10 @@ export function Navbar() {
               Support
             </a>
           </nav>
-          <div className="flex flex-col gap-2 pt-2 border-t border-[#E5E7EB]">
-            <Button variant="outline" asChild className="border-[#0D2137] text-[#0D2137] w-full">
+          <div className="flex flex-col gap-2 pt-4 border-t border-gray-100">
+            <Button variant="outline" asChild className="border-gray-250 text-[#0D2137] w-full rounded-xl">
               <Link href="/login" onClick={() => setMobileOpen(false)}>
                 Login
-              </Link>
-            </Button>
-            <Button asChild className="bg-[#1A7A4A] hover:bg-[#1A7A4A]/90 text-white w-full">
-              <Link href="/login" onClick={() => setMobileOpen(false)}>
-                <Lock className="size-4" />
-                Access Portal
               </Link>
             </Button>
           </div>
@@ -222,3 +211,4 @@ export function Navbar() {
     </header>
   )
 }
+

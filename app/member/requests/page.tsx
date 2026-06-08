@@ -5,6 +5,8 @@ import Link from "next/link"
 import { FileText } from "lucide-react"
 import { StatusBadge, CASE_TYPE_LABELS } from "@/components/ui/status-badge"
 import { Button } from "@/components/ui/button"
+import { TableScroll } from "@/components/ui/table-scroll"
+import { FilterBar } from "@/components/ui/filter-bar"
 import {
   Select,
   SelectContent,
@@ -66,9 +68,9 @@ export default function MemberRequestsPage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <FilterBar>
         <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v); setPage(1) }}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="sm:w-[200px]">
             <SelectValue placeholder="Case type" />
           </SelectTrigger>
           <SelectContent>
@@ -80,7 +82,7 @@ export default function MemberRequestsPage() {
         </Select>
 
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1) }}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="sm:w-[200px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -90,7 +92,7 @@ export default function MemberRequestsPage() {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </FilterBar>
 
       {loading ? (
         <p className="text-sm text-gray-400">Loading…</p>
@@ -100,7 +102,7 @@ export default function MemberRequestsPage() {
           <p className="text-sm text-gray-400">No requests found.</p>
         </div>
       ) : (
-        <div className="rounded-lg border border-gray-200 overflow-hidden bg-white">
+        <TableScroll className="border-gray-200">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -140,7 +142,7 @@ export default function MemberRequestsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
       )}
 
       {totalPages > 1 && (

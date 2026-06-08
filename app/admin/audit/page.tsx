@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { TableScroll } from "@/components/ui/table-scroll"
 
 interface AuditRow {
   id: string
@@ -43,7 +44,7 @@ export default function AdminAuditPage() {
         <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         <Button variant="outline" onClick={load}>Filter</Button>
       </div>
-      <div className="bg-white border rounded-lg overflow-x-auto">
+      <TableScroll>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b"><tr>
             <th className="text-left px-3 py-2">Timestamp</th><th className="text-left px-3 py-2">Actor</th><th className="text-left px-3 py-2">Action</th><th className="text-left px-3 py-2">Case</th><th className="text-left px-3 py-2">Transition</th>
@@ -60,7 +61,7 @@ export default function AdminAuditPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </div>
   )
 }

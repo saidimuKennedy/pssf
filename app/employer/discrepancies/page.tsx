@@ -4,6 +4,7 @@ import { CaseType } from "@prisma/client"
 import Link from "next/link"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { FIELD_LABELS, type DiscrepancyField } from "@/lib/validations/discrepancy"
+import { TableScroll } from "@/components/ui/table-scroll"
 
 export default async function EmployerDiscrepanciesPage() {
   const session = await auth()
@@ -21,7 +22,7 @@ export default async function EmployerDiscrepanciesPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Discrepancy Verifications</h1>
-      <div className="bg-white border rounded-lg overflow-hidden">
+      <TableScroll>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b"><tr>
             <th className="text-left px-4 py-2">Reference</th><th className="text-left px-4 py-2">Member</th><th className="text-left px-4 py-2">Field</th><th className="text-left px-4 py-2">Submitted</th><th className="text-left px-4 py-2">Status</th>
@@ -42,7 +43,7 @@ export default async function EmployerDiscrepanciesPage() {
             })}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </div>
   )
 }

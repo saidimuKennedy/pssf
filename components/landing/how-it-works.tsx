@@ -60,78 +60,93 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-white dark:bg-gray-900 py-16 lg:py-20">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="text-[28px] font-bold text-[#0D2137] dark:text-white">How it works</h2>
-          <p className="mt-2 text-sm text-[#6B7280] dark:text-gray-400">
+    <section id="how-it-works" className="relative bg-[#F9FAFB] py-20 lg:py-24 overflow-hidden border-y border-gray-200/40">
+      {/* Background decoration */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-grid-dots [mask-image:radial-gradient(ellipse_at_center,white_70%,transparent_100%)] opacity-50" />
+      </div>
+
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <p className="text-xs font-semibold uppercase tracking-wider text-[#1A7A4A]">
+            Simple process
+          </p>
+          <h2 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-[#0D2137]">
+            How it works
+          </h2>
+          <p className="mt-3 text-base text-gray-500 max-w-sm mx-auto">
             One simple process for all our services
           </p>
         </div>
 
         {/* Desktop horizontal */}
-        <div className="hidden lg:flex items-start justify-between gap-2">
-          {STEPS.map((step, idx) => {
-            const Icon = step.icon
-            return (
-              <div key={step.num} className="flex flex-1 items-start">
-                <div className="flex flex-col items-center text-center flex-1">
-                  <div
-                    className="flex size-14 items-center justify-center rounded-full mb-3"
-                    style={{ backgroundColor: step.iconBg }}
-                  >
-                    <Icon className="size-6" style={{ color: step.iconColor }} aria-hidden />
+        <div className="relative hidden lg:block px-4">
+          {/* connector track */}
+          <div
+            aria-hidden
+            className="absolute left-10 right-10 top-7 h-[3px] bg-gradient-to-r from-[#16A34A]/40 via-[#7C3AED]/40 to-[#0D2137]/40 rounded-full"
+          />
+          <ol className="relative grid grid-cols-6 gap-2">
+            {STEPS.map((step) => {
+              const Icon = step.icon
+              return (
+                <li key={step.num} className="group flex flex-col items-center text-center">
+                  <div className="relative">
+                    <div
+                      className="flex size-14 items-center justify-center rounded-2xl bg-white shadow-md border border-gray-200/50 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:-translate-y-1"
+                      style={{ backgroundColor: step.iconBg }}
+                    >
+                      <Icon className="size-6 transition-transform duration-300 group-hover:rotate-6" style={{ color: step.iconColor }} aria-hidden />
+                    </div>
+                    <span
+                      className="absolute -right-1.5 -top-1.5 flex size-5.5 items-center justify-center rounded-full text-[10px] font-extrabold text-white shadow-sm border border-white ring-1 ring-black/5"
+                      style={{ backgroundColor: step.iconColor }}
+                    >
+                      {step.num}
+                    </span>
                   </div>
-                  <span className="text-xs font-medium text-[#6B7280] dark:text-gray-400 mb-1">
-                    Step {step.num}
-                  </span>
-                  <p className="text-sm font-bold text-[#0D2137] dark:text-white">{step.label}</p>
-                  <p className="text-[10px] text-[#6B7280] dark:text-gray-400 mt-1 max-w-[120px]">
+                  <p className="mt-4 text-sm font-bold text-[#0D2137] group-hover:text-black transition-colors">
+                    {step.label}
+                  </p>
+                  <p className="mt-1.5 max-w-[130px] text-xs text-gray-500 leading-relaxed">
                     {step.description}
                   </p>
-                </div>
-                {idx < STEPS.length - 1 && (
-                  <div
-                    className="mt-7 h-px flex-1 min-w-[16px] border-t-2 border-dashed border-[#E5E7EB] dark:border-gray-600 mx-1"
-                    aria-hidden
-                  />
-                )}
-              </div>
-            )
-          })}
+                </li>
+              )
+            })}
+          </ol>
         </div>
 
         {/* Mobile / tablet vertical */}
-        <div className="lg:hidden flex flex-col items-center gap-0">
-          {STEPS.map((step, idx) => {
+        <ol className="lg:hidden relative mx-auto max-w-sm space-y-6 pl-4">
+          <div
+            aria-hidden
+            className="absolute left-[27px] top-3 bottom-3 w-0.5 bg-gradient-to-b from-[#16A34A]/40 via-[#7C3AED]/40 to-[#0D2137]/40 rounded-full"
+          />
+          {STEPS.map((step) => {
             const Icon = step.icon
             return (
-              <div key={step.num} className="flex flex-col items-center">
+              <li key={step.num} className="group relative flex items-start gap-5 py-1">
                 <div
-                  className="flex size-14 items-center justify-center rounded-full"
+                  className="relative z-10 flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm border border-gray-200/50 transition-all duration-300 group-hover:scale-105"
                   style={{ backgroundColor: step.iconBg }}
                 >
-                  <Icon className="size-6" style={{ color: step.iconColor }} aria-hidden />
+                  <Icon className="size-5" style={{ color: step.iconColor }} aria-hidden />
                 </div>
-                <span className="text-xs font-medium text-[#6B7280] dark:text-gray-400 mt-2">
-                  Step {step.num}
-                </span>
-                <p className="text-sm font-bold text-[#0D2137] dark:text-white mt-0.5">
-                  {step.label}
-                </p>
-                <p className="text-xs text-[#6B7280] dark:text-gray-400 mt-0.5 text-center max-w-xs">
-                  {step.description}
-                </p>
-                {idx < STEPS.length - 1 && (
-                  <div
-                    className="my-3 h-8 w-px border-l-2 border-dashed border-[#E5E7EB] dark:border-gray-600"
-                    aria-hidden
-                  />
-                )}
-              </div>
+                <div className="pt-0.5">
+                  <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold text-white mb-1 shadow-sm"
+                    style={{ backgroundColor: step.iconColor }}
+                  >
+                    Step {step.num}
+                  </span>
+                  <p className="text-sm font-bold text-[#0D2137]">{step.label}</p>
+                  <p className="text-xs text-gray-505 mt-0.5">{step.description}</p>
+                </div>
+              </li>
             )
           })}
-        </div>
+        </ol>
       </div>
     </section>
   )

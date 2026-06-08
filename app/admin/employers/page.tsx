@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { TableScroll } from "@/components/ui/table-scroll"
 
 interface Row { id: string; name: string; code: string; officer_count: number; active_cases_count: number; is_active: boolean }
 
@@ -15,7 +16,7 @@ export default function AdminEmployersPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between"><h1 className="text-2xl font-bold">Employers</h1><Button asChild><Link href="/admin/employers/new">Create employer</Link></Button></div>
-      <div className="bg-white border rounded-lg overflow-hidden">
+      <TableScroll>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b"><tr>
             <th className="text-left px-4 py-2">Name</th><th className="text-left px-4 py-2">Code</th><th className="text-left px-4 py-2">Officers</th><th className="text-left px-4 py-2">Cases</th><th className="text-left px-4 py-2">Status</th>
@@ -28,7 +29,7 @@ export default function AdminEmployersPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </div>
   )
 }

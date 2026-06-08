@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Role } from "@/lib/enums"
+import { TableScroll } from "@/components/ui/table-scroll"
+import { FilterBar } from "@/components/ui/filter-bar"
 
 interface UserRow { id: string; name: string; email: string; phone: string; role: Role; is_active: boolean; created_at: string }
 
@@ -29,18 +31,18 @@ export default function AdminUsersPage() {
         <h1 className="text-2xl font-bold text-[#0D2137]">Users</h1>
         <Button asChild><Link href="/admin/users/new">Create user</Link></Button>
       </div>
-      <div className="flex gap-3">
-        <Input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
+      <FilterBar>
+        <Input placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} className="sm:max-w-xs" />
         <Button variant="outline" onClick={load}>Search</Button>
         <Select value={role} onValueChange={setRole}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="sm:w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All roles</SelectItem>
             {Object.values(Role).map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
           </SelectContent>
         </Select>
-      </div>
-      <div className="bg-white border rounded-lg overflow-hidden">
+      </FilterBar>
+      <TableScroll>
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b"><tr>
             <th className="text-left px-4 py-2">Name</th><th className="text-left px-4 py-2">Email</th><th className="text-left px-4 py-2">Role</th><th className="text-left px-4 py-2">Status</th><th className="text-left px-4 py-2">Created</th>
@@ -57,7 +59,7 @@ export default function AdminUsersPage() {
             ))}
           </tbody>
         </table>
-      </div>
+      </TableScroll>
     </div>
   )
 }
