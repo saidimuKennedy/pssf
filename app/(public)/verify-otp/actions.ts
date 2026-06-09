@@ -8,7 +8,7 @@ export async function resendOtpAction(prevState: unknown, formData: FormData) {
 
   if (!phone) return { error: "Missing phone number." }
 
-  const user = await prisma.user.findUnique({ where: { phone } })
+  const user = await prisma.user.findFirst({ where: { phone } })
 
   if (!user) return { error: "Account not found." }
 

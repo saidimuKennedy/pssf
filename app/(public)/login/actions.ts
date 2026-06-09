@@ -22,7 +22,7 @@ export async function requestOtpAction(prevState: unknown, formData: FormData) {
     return { error: "Phone number is required." }
   }
 
-  const user = await prisma.user.findUnique({ where: { phone } })
+  const user = await prisma.user.findFirst({ where: { phone } })
   if (!user) return { error: "No account found for this phone number. Please sign up first." }
   if (!user.is_active) return { error: "Account is disabled. Contact support." }
 
@@ -47,7 +47,7 @@ export async function otpLoginAction(prevState: unknown, formData: FormData) {
     throw e
   }
 
-  const user = await prisma.user.findUnique({ where: { phone: phone ?? undefined } })
+  const user = await prisma.user.findFirst({ where: { phone: phone ?? undefined } })
   const role = user?.role
   const home = getRoleHome(role)
   redirect(home)

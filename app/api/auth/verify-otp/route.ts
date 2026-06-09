@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
       )
   }
 
-  const user = await prisma.user.findUnique({ where: { phone: identifier } })
+  const user = await prisma.user.findFirst({ where: { phone: identifier } })
   if (user) {
     await prisma.user.update({
         where: { id: user.id },
