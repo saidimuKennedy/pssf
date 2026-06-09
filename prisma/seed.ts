@@ -188,7 +188,7 @@ async function main() {
     }),
   ])
   const claimantUser = await prisma.user.upsert({
-    where: { phone: "+254700000006" },
+    where: { id: "usr-clm1-0000-0000-000000000001" },
     update: {},
     create: {
       id: "usr-clm1-0000-0000-000000000001",
@@ -1340,7 +1340,7 @@ async function main() {
   })
 
   const kennedyMemberUser = await prisma.user.upsert({
-    where: { phone: "+254704696287" },
+    where: { id: "usr-kenMem-000-0000-000000000001" },
     update: { email: null, is_active: true },
     create: {
       id: "usr-kenMem-000-0000-000000000001",
