@@ -1,20 +1,12 @@
 import { z } from "zod"
 
-export const RequestOtpSchema = z
-  .object({
-    phone: z
-      .string()
-      .regex(/^\+?[1-9]\d{7,14}$/, "Enter a valid phone number")
-      .optional(),
-    email: z.string().email("Enter a valid email address").optional(),
-  })
-  .refine((d) => Boolean(d.phone || d.email), {
-    message: "Phone or email is required",
-  })
+export const RequestOtpSchema = z.object({
+  phone: z.string().regex(/^\+?[1-9]\d{7,14}$/, "Enter a valid phone number"),
+})
 
 export const VerifyOtpSchema = z.object({
   identifier: z.string().min(1, "Identifier is required"),
-  code: z.string().length(6, "OTP must be 6 digits").regex(/^\d{6}$/, "OTP must be digits only"),
+  code: z.string().min(4).max(6).regex(/^[A-Z0-9]+$/i, "Invalid OTP code"),
 })
 
 export const LoginSchema = z.object({
@@ -28,6 +20,7 @@ export const SignUpSchema = z.object({
     .min(6, "National ID must be at least 6 characters")
     .max(20, "National ID is too long"),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  phone: z.string().regex(/^\+?[1-9]\d{7,14}$/, "Enter a valid phone number"),
 })
 
 export type RequestOtpInput = z.infer<typeof RequestOtpSchema>

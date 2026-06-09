@@ -188,6 +188,10 @@ export function Footer() {
             <Link href="#" className="hover:text-white transition-colors">
               Accessibility
             </Link>
+            <span aria-hidden>·</span>
+            <Link href="/login/admin" className="hover:text-white transition-colors">
+              Staff Login
+            </Link>
           </div>
         </div>
       </div>

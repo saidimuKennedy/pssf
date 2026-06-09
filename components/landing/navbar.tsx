@@ -134,11 +134,7 @@ export function Navbar() {
         </nav>
 
         <div className="hidden lg:flex items-center gap-2">
-          <Button
-            variant="outline"
-            asChild
-            className="border-gray-250 text-[#0D2137] hover:bg-gray-50 transition-all rounded-xl h-10 px-4"
-          >
+          <Button variant="outline" asChild className="border-gray-250 text-[#0D2137] hover:bg-gray-50 transition-all rounded-xl h-10 px-4">
             <Link href="/login">Login</Link>
           </Button>
         </div>

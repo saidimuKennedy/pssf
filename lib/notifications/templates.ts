@@ -100,11 +100,6 @@ const WHATSAPP_TEMPLATES: Record<string, (vars: Variables) => string> = {
       "Your PSSF [case_type_label] (Ref: [case_reference]) is complete. Thank you for using the PSSF Smart Self-Service Platform.",
       v
     ),
-  tpl_otp_wa: (v) =>
-    sub(
-      "Your PSSF verification code is [otp_code]. It expires in 5 minutes. Do not share this code with anyone.",
-      v
-    ),
   tpl_statement_wa: (v) =>
     sub(
       "Hello [full_name], your PSSF contribution statement for [period_from] to [period_to] is ready. Your total balance is [total_balance]. Log in to the PSSF portal to view the full statement.",
@@ -196,14 +191,6 @@ interface MetaTemplateEntry {
 }
 
 export const WA_META_TEMPLATES: Record<string, MetaTemplateEntry> = {
-  // UTILITY — body-only OTP delivery (auth-category template failed delivery on unverified number); {{1}} = OTP code
-  tpl_otp_wa: {
-    name: "pssf_number",
-    language: "en_US",
-    components: (v) => [
-      { type: "body", parameters: [{ type: "text", text: v.otp_code ?? "" }] },
-    ],
-  },
   // UTILITY notifications — single body parameter = pre-resolved message text
   tpl_employer_approved_wa: {
     name: "pssf_employe_approved",

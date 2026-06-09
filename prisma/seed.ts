@@ -46,6 +46,7 @@ async function main() {
     create: {
       id: "usr-emp1-0000-0000-000000000001",
       email: "hr@moti.go.ke",
+      phone: "+254700000011",
       password_hash: HASH("employer123"),
       role: Role.EMPLOYER,
     },
@@ -68,6 +69,7 @@ async function main() {
     create: {
       id: "usr-emp2-0000-0000-000000000002",
       email: "hr@mof.go.ke",
+      phone: "+254700000012",
       password_hash: HASH("employer123"),
       role: Role.EMPLOYER,
     },
@@ -92,6 +94,7 @@ async function main() {
     create: {
       id: "usr-off1-0000-0000-000000000001",
       email: "officer@pssf.go.ke",
+      phone: "+254700000013",
       password_hash: HASH("pssf1234"),
       role: Role.PSSF_OFFICER,
     },
@@ -102,6 +105,7 @@ async function main() {
     create: {
       id: "usr-sup1-0000-0000-000000000001",
       email: "supervisor@pssf.go.ke",
+      phone: "+254700000014",
       password_hash: HASH("pssf1234"),
       role: Role.PSSF_SUPERVISOR,
     },
@@ -112,6 +116,7 @@ async function main() {
     create: {
       id: "usr-adm1-0000-0000-000000000001",
       email: "admin@pssf.go.ke",
+      phone: "+254700000015",
       password_hash: HASH("pssf1234"),
       role: Role.ADMIN,
     },
@@ -342,6 +347,97 @@ async function main() {
     }
   }
   console.log("✓ Member phone numbers linked for OTP login")
+
+  // ── Unlinked members (stub user, no phone/password — for testing sign-up / activation flow) ──
+  // Use any of these national IDs on /sign-up to test the full registration journey.
+  // National ID | DOB         | Phone
+  // 11111111    | 1983-04-12  | +254711111111
+  // 22222222    | 1991-09-05  | +254722222222
+  // 33333333    | 1978-12-20  | +254733333333
+  const unlStub1 = await prisma.user.upsert({
+    where: { id: "usr-unl1-0000-0000-000000000001" },
+    update: {},
+    create: { id: "usr-unl1-0000-0000-000000000001", role: Role.MEMBER },
+  })
+  const unlStub2 = await prisma.user.upsert({
+    where: { id: "usr-unl2-0000-0000-000000000002" },
+    update: {},
+    create: { id: "usr-unl2-0000-0000-000000000002", role: Role.MEMBER },
+  })
+  const unlStub3 = await prisma.user.upsert({
+    where: { id: "usr-unl3-0000-0000-000000000003" },
+    update: {},
+    create: { id: "usr-unl3-0000-0000-000000000003", role: Role.MEMBER },
+  })
+  await Promise.all([
+    prisma.member.upsert({
+      where: { national_id: "11111111" },
+      update: {},
+      create: {
+        id: "mem-unl1-0000-0000-000000000001",
+        user_id: unlStub1.id,
+        national_id: "11111111",
+        full_name: "Alice Auma Odhiambo",
+        date_of_birth: new Date("1983-04-12"),
+        member_number: "PSSF/2008/101",
+        personal_number: "PN101001",
+        employer_id: moti.id,
+        employer_name: moti.name,
+        date_of_employment: new Date("2008-03-01"),
+        date_joined_scheme: new Date("2008-04-01"),
+        mobile_number: "+254711111111",
+        email: "alice.auma@gmail.com",
+        town: "Nairobi",
+        communication_pref: NotificationChannel.PORTAL,
+        is_verified: false,
+      },
+    }),
+    prisma.member.upsert({
+      where: { national_id: "22222222" },
+      update: {},
+      create: {
+        id: "mem-unl2-0000-0000-000000000002",
+        user_id: unlStub2.id,
+        national_id: "22222222",
+        full_name: "Brian Otieno Mwangi",
+        date_of_birth: new Date("1991-09-05"),
+        member_number: "PSSF/2016/102",
+        personal_number: "PN102002",
+        employer_id: mof.id,
+        employer_name: mof.name,
+        date_of_employment: new Date("2016-07-01"),
+        date_joined_scheme: new Date("2016-08-01"),
+        mobile_number: "+254722222222",
+        email: "brian.otieno@gmail.com",
+        town: "Mombasa",
+        communication_pref: NotificationChannel.EMAIL,
+        is_verified: false,
+      },
+    }),
+    prisma.member.upsert({
+      where: { national_id: "33333333" },
+      update: {},
+      create: {
+        id: "mem-unl3-0000-0000-000000000003",
+        user_id: unlStub3.id,
+        national_id: "33333333",
+        full_name: "Carol Wanjiku Ngugi",
+        date_of_birth: new Date("1978-12-20"),
+        member_number: "PSSF/2005/103",
+        personal_number: "PN103003",
+        employer_id: ntsa.id,
+        employer_name: ntsa.name,
+        date_of_employment: new Date("2005-06-15"),
+        date_joined_scheme: new Date("2005-07-01"),
+        mobile_number: "+254733333333",
+        email: "carol.ngugi@gmail.com",
+        town: "Kisumu",
+        communication_pref: NotificationChannel.WHATSAPP,
+        is_verified: false,
+      },
+    }),
+  ])
+  console.log("✓ Unlinked test members seeded (use national IDs 11111111 / 22222222 / 33333333 on /sign-up)")
 
   // ── Cases ─────────────────────────────────────────────────────────────────
   // Case 1: Completed enrolment for John Kamau

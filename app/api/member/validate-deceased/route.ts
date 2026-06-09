@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
+import { auth } from "@/auth"
 import { validateDeceasedMember } from "@/lib/death-benefits/service"
 
 const Schema = z.object({
@@ -10,6 +11,11 @@ const Schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
+  const session = await auth()
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 })
+  }
+
   const body = await req.json()
   const parsed = Schema.safeParse(body)
   if (!parsed.success) {
@@ -19,6 +25,9 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const result = await validateDeceasedMember(parsed.data)
+  const result = await validateDeceasedMember({
+    ...parsed.data,
+    claimant_user_id: session.user.id,
+  })
   return NextResponse.json(result)
 }

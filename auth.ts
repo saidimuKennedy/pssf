@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs"
 import { prisma } from "@/lib/db"
 import { Role } from "@prisma/client"
 import type { NextAuthConfig } from "next-auth"
+import { validateOTP } from "@/lib/kra/otp"
 
 const STAFF_ROLES: Role[] = [Role.PSSF_OFFICER, Role.PSSF_SUPERVISOR, Role.ADMIN, Role.EMPLOYER]
 
@@ -24,33 +25,12 @@ export const authConfig = {
         const user = await prisma.user.findUnique({ where: { phone } })
         if (!user || !user.is_active) return null
 
-        const otp = await prisma.otpRequest.findFirst({
-          where: {
-            phone,
-            verified: false,
-            expires_at: { gt: new Date() },
-            attempts: { lt: 3 },
-          },
-          orderBy: { created_at: "desc" },
-        })
-        if (!otp) return null
+        const result = await validateOTP(phone, code)
+        if (!result.success) return null
 
-        const hash = hashOtp(code)
-        if (otp.code !== hash) {
-          await prisma.otpRequest.update({
-            where: { id: otp.id },
-            data: { attempts: { increment: 1 } },
-          })
-          return null
-        }
-
-        await prisma.otpRequest.update({
-          where: { id: otp.id },
-          data: { verified: true },
-        })
         await prisma.user.update({
           where: { id: user.id },
-          data: { last_login_at: new Date() },
+          data: { last_login_at: new Date(), otp_verified_at: new Date() },
         })
 
         return {
@@ -83,33 +63,14 @@ export const authConfig = {
         const passwordOk = await bcrypt.compare(password, user.password_hash)
         if (!passwordOk) return null
 
-        const otp = await prisma.otpRequest.findFirst({
-          where: {
-            email,
-            verified: false,
-            expires_at: { gt: new Date() },
-            attempts: { lt: 3 },
-          },
-          orderBy: { created_at: "desc" },
-        })
-        if (!otp) return null
+        if (!user.phone) return null
 
-        const hash = hashOtp(code)
-        if (otp.code !== hash) {
-          await prisma.otpRequest.update({
-            where: { id: otp.id },
-            data: { attempts: { increment: 1 } },
-          })
-          return null
-        }
+        const result = await validateOTP(user.phone, code)
+        if (!result.success) return null
 
-        await prisma.otpRequest.update({
-          where: { id: otp.id },
-          data: { verified: true },
-        })
         await prisma.user.update({
           where: { id: user.id },
-          data: { last_login_at: new Date() },
+          data: { last_login_at: new Date(), otp_verified_at: new Date() },
         })
 
         return {
@@ -169,15 +130,3 @@ export const authConfig = {
 } satisfies NextAuthConfig
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig)
-
-export const DEV_OTP = "123456"
-
-export function generateOtpCode(): string {
-  if (process.env.NODE_ENV === "development") return DEV_OTP
-  return Math.floor(100000 + Math.random() * 900000).toString()
-}
-
-export function hashOtp(code: string): string {
-  const { createHash } = require("crypto") as typeof import("crypto")
-  return createHash("sha256").update(code).digest("hex")
-}

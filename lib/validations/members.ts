@@ -5,6 +5,7 @@ export const ValidateMemberSchema = z.object({
   date_of_birth: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date of birth must be in YYYY-MM-DD format"),
+  phone: z.string().regex(/^\+?[1-9]\d{7,14}$/, "Enter a valid phone number"),
 })
 
 const kenyanPhone = z

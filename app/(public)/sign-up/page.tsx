@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useActionState, useEffect } from "react"
+import { useState, useActionState, useEffect, useTransition } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,9 +34,17 @@ export default function SignUpPage() {
   const [accessMethod, setAccessMethod] = useState<"otp" | "password">("otp")
   const [password, setPassword] = useState("")
 
+  const [, startTransition] = useTransition()
+
   const [validateState, validate, validatePending] = useActionState(validateMemberAction, null)
   const [otpSendState, sendOtp, otpSendPending] = useActionState(sendSignUpOtpAction, null)
   const [activateState, activate, activatePending] = useActionState(activateAccountAction, null)
+
+  function handleResend() {
+    const fd = new FormData()
+    fd.append("phone", phone)
+    startTransition(() => sendOtp(fd))
+  }
 
   useEffect(() => {
     if (validateState?.success && validateState.member) {
@@ -56,7 +64,13 @@ export default function SignUpPage() {
   }, [otpSendState])
 
   useEffect(() => {
-    if (activateState?.success) setStep("activated")
+    if (activateState?.success) {
+      if (activateState.registered) {
+        window.location.href = "/login?registered=true"
+      } else {
+        setStep("activated")
+      }
+    }
   }, [activateState])
 
   const currentIdx = STEPS.findIndex((s) => s.key === step)
@@ -107,7 +121,7 @@ export default function SignUpPage() {
             <CardHeader>
               <CardTitle className="text-[#0D2137]">Verify your identity</CardTitle>
               <CardDescription>
-                Enter your National ID number and date of birth exactly as they appear on your records.
+                Enter your National ID, date of birth, and phone number exactly as they appear on your records.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -119,6 +133,10 @@ export default function SignUpPage() {
                 <div className="space-y-1">
                   <Label htmlFor="date_of_birth">Date of birth</Label>
                   <Input id="date_of_birth" name="date_of_birth" type="date" required />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="phone_validate">Phone number</Label>
+                  <Input id="phone_validate" name="phone" type="tel" placeholder="+254700000000" required />
                 </div>
                 {validateState?.error != null && (() => {
                   const err = validateState.error
@@ -332,8 +350,8 @@ export default function SignUpPage() {
             <CardHeader>
               <CardTitle className="text-[#0D2137]">Verify your account</CardTitle>
               <CardDescription>
-                Enter the 6-digit code sent to{" "}
-                <span className="font-medium text-[#111827]">{email || phone}</span>
+                Enter the 6-character code sent to{" "}
+                <span className="font-medium text-[#111827]">{phone}</span>
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -350,27 +368,25 @@ export default function SignUpPage() {
                   <input type="hidden" name="password" value={password} />
                 )}
                 <div className="space-y-1">
-                  <Label htmlFor="signup-code">6-digit code</Label>
+                  <Label htmlFor="signup-code">Verification code</Label>
                   <Input
                     id="signup-code"
                     name="code"
                     type="text"
-                    inputMode="numeric"
+                    autoComplete="one-time-code"
                     maxLength={6}
-                    placeholder="000000"
+                    placeholder="ABC123"
                     required
                     autoFocus
-                    className="tracking-widest text-center text-lg"
+                    className="tracking-widest text-center text-lg uppercase"
+                    onChange={(e) => { e.target.value = e.target.value.toUpperCase() }}
                   />
                 </div>
-                {process.env.NODE_ENV === "development" && (
-                  <p className="text-xs text-[#6B7280] bg-[#F5F5F5] rounded-md px-3 py-2">
-                    Development mode — use OTP: <strong>123456</strong>
-                  </p>
-                )}
+
                 {activateState?.error && (
                   <p className="text-sm text-[#DC2626]">{activateState.error}</p>
                 )}
+
                 <div className="flex gap-3">
                   <Button
                     type="button"
@@ -387,6 +403,17 @@ export default function SignUpPage() {
                   >
                     {activatePending ? "Activating…" : "Activate account"}
                   </Button>
+                </div>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={otpSendPending}
+                    className="text-sm text-[#1A7A4A] hover:underline disabled:text-[#6B7280] disabled:no-underline disabled:cursor-not-allowed"
+                  >
+                    {otpSendPending ? "Sending…" : "Resend code"}
+                  </button>
                 </div>
               </form>
             </CardContent>

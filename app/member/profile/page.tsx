@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Lock } from "lucide-react"
 
-const DEV_OTP = "123456"
 
 export default function MemberProfilePage() {
   const [profile, setProfile] = useState<Record<string, string | null>>({})
@@ -39,10 +38,7 @@ export default function MemberProfilePage() {
       setMsg("Enter OTP to confirm new mobile number.")
       return
     }
-    if (showOtp && process.env.NODE_ENV === "development" && phoneOtp !== DEV_OTP) {
-      setMsg(`Use OTP ${DEV_OTP}`)
-      return
-    }
+
     const res = await fetch("/api/member/profile", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

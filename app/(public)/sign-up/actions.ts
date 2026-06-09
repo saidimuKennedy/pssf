@@ -2,12 +2,10 @@
 
 import { prisma } from "@/lib/db"
 import { SignUpSchema } from "@/lib/validations/auth"
-import { generateOtpCode, hashOtp } from "@/auth"
-import { Role } from "@prisma/client"
-import { signIn } from "@/auth"
-import { AuthError } from "next-auth"
-import { validateMember } from "@/lib/members/service"
+import { lookupById } from "@/lib/kra/members"
 import bcrypt from "bcryptjs"
+import { generateOTP, validateOTP } from "@/lib/kra/otp"
+import { Role } from "@prisma/client"
 
 export type ValidateMemberResult =
   | null
@@ -15,63 +13,48 @@ export type ValidateMemberResult =
 
 export type SendOtpResult =
   | null
-  | { success?: boolean; expires_in?: number; error?: string }
+  | { success?: boolean; error?: string }
 
 export type ActivateResult =
   | null
-  | { success?: boolean; error?: string }
-
-const OTP_EXPIRY_SECONDS = 300
-
-async function dispatchOtp(phone: string, code: string, email?: string | null): Promise<void> {
-  if (process.env.PSSF_MOCK_NOTIFICATIONS === "true") {
-    console.log(`[MOCK OTP sign-up] phone=${phone} email=${email ?? "-"} code=${code}`)
-    return
-  }
-  // Email is the reliable OTP channel; send there when the applicant provided one.
-  if (email) {
-    const { sendOtpEmail } = await import("@/lib/notifications/send-otp-email")
-    await sendOtpEmail(email, code)
-    return
-  }
-  // No email: in development the code is the fixed DEV_OTP — log and proceed.
-  if (process.env.NODE_ENV === "development") {
-    console.warn(`[OTP sign-up] Dev mode: no email channel. code=${code} phone=${phone}`)
-    return
-  }
-  // Production last resort: WhatsApp.
-  const { sendWhatsApp } = await import("@/lib/notifications/channels/whatsapp")
-  await sendWhatsApp({
-    recipient_phone: phone,
-    template_ref: "tpl_otp_wa",
-    variables: { otp_code: code },
-  })
-}
+  | { success?: boolean; registered?: boolean; error?: string }
 
 export async function validateMemberAction(prevState: unknown, formData: FormData) {
   const parsed = SignUpSchema.safeParse({
     national_id: formData.get("national_id"),
     date_of_birth: formData.get("date_of_birth"),
+    phone: formData.get("phone"),
   })
   if (!parsed.success) {
     return { error: parsed.error.flatten() }
   }
 
-  const { national_id, date_of_birth } = parsed.data
+  const { national_id, date_of_birth, phone } = parsed.data
+  const year = date_of_birth.split("-")[0]
 
-  const result = await validateMember(national_id, date_of_birth)
-  if (!result.matched) {
+  const kraResult = await lookupById(national_id, phone, year)
+  if (!kraResult.success) {
     return {
       error: {
         fieldErrors: {
-          national_id: ["We could not verify your identity. Check your National ID and date of birth."],
+          national_id: [kraResult.error ?? "We could not verify your identity. Check your details and try again."],
         },
       },
     }
   }
 
   const memberRecord = await prisma.member.findUnique({ where: { national_id } })
-  if (memberRecord?.user_id) {
+  if (!memberRecord) {
+    return {
+      error: {
+        fieldErrors: {
+          national_id: ["You are not registered as a PSSF member. Contact PSSF for assistance."],
+        },
+      },
+    }
+  }
+
+  if (memberRecord.user_id) {
     const linked = await prisma.user.findUnique({ where: { id: memberRecord.user_id } })
     if (linked?.phone) {
       return {
@@ -86,40 +69,35 @@ export async function validateMemberAction(prevState: unknown, formData: FormDat
 
   return {
     success: true,
-    member: result.member,
+    member: {
+      id: memberRecord.id,
+      full_name: kraResult.name ?? memberRecord.full_name,
+      national_id: memberRecord.national_id,
+      date_of_birth: date_of_birth,
+      kra_pin: kraResult.kra_pin ?? memberRecord.kra_pin ?? "",
+      member_number: memberRecord.member_number ?? "",
+      personal_number: memberRecord.personal_number ?? "",
+      employer_name: memberRecord.employer_name ?? "",
+      mobile_number: phone,
+      email: memberRecord.email ?? "",
+      postal_address: memberRecord.postal_address ?? "",
+      postal_code: memberRecord.postal_code ?? "",
+      town: memberRecord.town ?? "",
+      communication_pref: memberRecord.communication_pref,
+    },
   }
 }
 
 export async function sendSignUpOtpAction(prevState: unknown, formData: FormData) {
   const phone = formData.get("phone") as string
-  const email = (formData.get("email") as string) || null
   if (!phone) return { error: "Phone number is required." }
 
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
-  const recentCount = await prisma.otpRequest.count({
-    where: { phone, created_at: { gt: oneHourAgo } },
-  })
-  if (recentCount >= 5) return { error: "Too many requests. Try again in an hour." }
-
-  const code = generateOtpCode()
-  const otpRequest = await prisma.otpRequest.create({
-    data: {
-      phone,
-      code: hashOtp(code),
-      expires_at: new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000),
-    },
-  })
-
-  // Roll back the request row if delivery fails, so failed sends don't burn the rate limit.
-  try {
-    await dispatchOtp(phone, code, email)
-  } catch (err) {
-    await prisma.otpRequest.delete({ where: { id: otpRequest.id } }).catch(() => {})
-    console.error(`[OTP sign-up] dispatch failed for ${phone}: ${err instanceof Error ? err.message : err}`)
+  const result = await generateOTP(phone)
+  if (!result.success) {
     return { error: "Could not send your verification code. Please try again." }
   }
 
-  return { success: true, expires_in: OTP_EXPIRY_SECONDS }
+  return { success: true }
 }
 
 export async function activateAccountAction(prevState: unknown, formData: FormData) {
@@ -144,23 +122,9 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
     }
   }
 
-  const otp = await prisma.otpRequest.findFirst({
-    where: {
-      phone,
-      verified: false,
-      expires_at: { gt: new Date() },
-      attempts: { lt: 3 },
-    },
-    orderBy: { created_at: "desc" },
-  })
-
-  if (!otp) return { error: "OTP expired. Please request a new one." }
-  if (otp.code !== hashOtp(code)) {
-    await prisma.otpRequest.update({
-      where: { id: otp.id },
-      data: { attempts: { increment: 1 } },
-    })
-    return { error: "Invalid OTP." }
+  const result = await validateOTP(phone, code)
+  if (!result.success) {
+      return { error: "Invalid or expired OTP." }
   }
 
   const password_hash =
@@ -178,6 +142,7 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
           phone,
           email: email || member.email || undefined,
           is_active: true,
+          otp_verified_at: new Date(),
           ...(password_hash ? { password_hash } : {}),
         },
       })
@@ -188,6 +153,7 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
           email: email || null,
           role: Role.MEMBER,
           is_active: true,
+          otp_verified_at: new Date(),
           ...(password_hash ? { password_hash } : {}),
         },
       })
@@ -199,7 +165,6 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
       }
     }
   } catch (e) {
-    // P2002 = unique constraint (email or phone already belongs to another account).
     if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002") {
       const target = (e as { meta?: { target?: string[] | string } }).meta?.target
       const field = Array.isArray(target) ? target.join(", ") : String(target ?? "")
@@ -224,14 +189,5 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
     })
   }
 
-  try {
-    await signIn("otp", { phone, code, redirect: false })
-  } catch (e) {
-    if (e instanceof AuthError) {
-      return { error: "Account created but sign-in failed. Please sign in manually." }
-    }
-    throw e
-  }
-
-  return { success: true }
+  return { success: true, registered: true }
 }

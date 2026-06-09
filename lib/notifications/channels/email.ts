@@ -12,7 +12,6 @@ import PaymentProcessingEmail from "@/emails/payment-processing"
 import CaseCompletedEmail from "@/emails/case-completed"
 import TaskOverdueEmail from "@/emails/task-overdue"
 import WelcomeEmail from "@/emails/welcome"
-import OtpEmail from "@/emails/otp"
 
 type EmailComponent = React.ComponentType<{ variables: Record<string, string> }>
 
@@ -28,7 +27,6 @@ const EMAIL_COMPONENTS: Record<string, EmailComponent> = {
   tpl_task_overdue_email: TaskOverdueEmail,
   tpl_welcome_email: WelcomeEmail,
   tpl_statement_email: WelcomeEmail,
-  tpl_otp_email: OtpEmail,
 }
 
 export interface EmailOptions {

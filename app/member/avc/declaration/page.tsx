@@ -10,7 +10,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AVC_STEPS } from "@/lib/avc/journey"
 
-const DEV_OTP = "123456"
 
 export default function AVCDeclarationPage() {
   const router = useRouter()
@@ -41,10 +40,7 @@ export default function AVCDeclarationPage() {
       setError("Please enter the 6-digit verification code sent to your phone.")
       return
     }
-    if (process.env.NODE_ENV === "development" && otp !== DEV_OTP) {
-      setError(`In development, use OTP: ${DEV_OTP}`)
-      return
-    }
+
 
     setError(null)
     setLoading(true)
@@ -113,13 +109,7 @@ export default function AVCDeclarationPage() {
         </Label>
       </div>
 
-      {process.env.NODE_ENV === "development" && (
-        <Alert>
-          <AlertDescription>
-            Development mode — use OTP: <strong>{DEV_OTP}</strong>
-          </AlertDescription>
-        </Alert>
-      )}
+
 
       <div className="space-y-2">
         <Label htmlFor="otp">Verification Code</Label>

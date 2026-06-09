@@ -10,7 +10,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { BENEFITS_STEPS } from "@/lib/benefits/journey"
 
-const DEV_OTP = "123456"
 
 export default function BenefitsDeclarationPage() {
   const router = useRouter()
@@ -21,7 +20,7 @@ export default function BenefitsDeclarationPage() {
 
   async function save() {
     if (!accepted) { setError("Accept the declaration."); return }
-    if (process.env.NODE_ENV === "development" && otp !== DEV_OTP) { setError(`Use OTP ${DEV_OTP}`); return }
+
     const getRes = await fetch(`/api/cases/${caseId}`)
     const existing = (await getRes.json()).form_data
     await fetch(`/api/cases/${caseId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ formData: { ...existing, declaration_accepted: true } }) })

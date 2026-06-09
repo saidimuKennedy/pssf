@@ -11,7 +11,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DEATH_STEPS } from "@/lib/death-benefits/journey"
 import type { DeathClaimant } from "@/lib/validations/death-benefits"
 
-const DEV_OTP = "123456"
 
 export default function DeathDeclarationPage() {
   const router = useRouter()
@@ -30,7 +29,7 @@ export default function DeathDeclarationPage() {
 
   async function save() {
     if (claimants.some((_, i) => !confirmed[i])) { setError("Each claimant must confirm the declaration."); return }
-    if (process.env.NODE_ENV === "development" && otp !== DEV_OTP) { setError(`Use OTP ${DEV_OTP}`); return }
+
     const updated = claimants.map((c) => ({ ...c, declaration_confirmed: true }))
     const getRes = await fetch(`/api/cases/${caseId}`)
     const existing = (await getRes.json()).form_data
