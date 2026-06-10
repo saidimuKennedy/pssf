@@ -21,10 +21,17 @@ export interface KraOtpResult {
   message?: string
 }
 
+const MOCK_OTP = "000000"
+
 /**
  * Request an OTP to be sent to the given MSISDN via Pesaflow.
  */
 export async function generateOTP(rawMsisdn: string): Promise<KraOtpResult> {
+  if (process.env.KRA_MOCK === "true") {
+    console.log(`[KRA OTP MOCK] OTP bypass active — use code ${MOCK_OTP} for ${rawMsisdn}`)
+    return { success: true, message: "mock" }
+  }
+
   const base = process.env.KRA_API_URL
   if (!base) throw new Error("KRA_API_URL is not configured")
 
@@ -64,6 +71,12 @@ export async function generateOTP(rawMsisdn: string): Promise<KraOtpResult> {
  * Validate an OTP code for the given MSISDN via Pesaflow.
  */
 export async function validateOTP(rawMsisdn: string, otp: string): Promise<KraOtpResult> {
+  if (process.env.KRA_MOCK === "true") {
+    const match = otp.trim().toUpperCase() === MOCK_OTP
+    console.log(`[KRA OTP MOCK] validate for ${rawMsisdn}: ${match ? "accepted" : "rejected"}`)
+    return { success: match, message: match ? "mock" : "invalid mock code" }
+  }
+
   const base = process.env.KRA_API_URL
   if (!base) throw new Error("KRA_API_URL is not configured")
 

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
 
-export default function BeneficiariesQueuePage() {
+export default async function BeneficiariesQueuePage() {
   redirect("/staff/cases?type=BENEFICIARY_NOMINATION")
 }

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useActionState, useEffect, useTransition } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,16 +11,30 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { validateMemberAction, sendSignUpOtpAction, activateAccountAction } from "./actions"
 import { PssfLogo } from "@/components/pssf-logo"
 import Link from "next/link"
-import { CheckCircle2, Lock, AlertTriangle } from "lucide-react"
+import { 
+  CheckCircle2, 
+  Lock, 
+  AlertTriangle, 
+  ArrowLeft, 
+  ArrowRight, 
+  ShieldCheck, 
+  Info, 
+  Sparkles,
+  Smartphone,
+  Mail,
+  Home,
+  UserCheck
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 
 type Step = "validate" | "review" | "access" | "otp" | "activated"
 
 const STEPS: { key: Step; label: string }[] = [
-  { key: "validate", label: "Validate" },
-  { key: "review", label: "Review" },
+  { key: "validate", label: "Verify" },
+  { key: "review", label: "Profile" },
   { key: "access", label: "Access" },
-  { key: "otp", label: "Verify" },
-  { key: "activated", label: "Done" },
+  { key: "otp", label: "OTP Code" },
+  { key: "activated", label: "Complete" },
 ]
 
 export default function SignUpPage() {
@@ -77,7 +90,6 @@ export default function SignUpPage() {
 
   const currentIdx = STEPS.findIndex((s) => s.key === step)
 
-  // Extract a flat error message from the validate state
   function getValidateError(): string | null {
     if (!validateState?.error) return null
     const err = validateState.error
@@ -89,499 +101,664 @@ export default function SignUpPage() {
   const matchStatus = validateState?.matchStatus
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#F5F5F5] px-4 py-12">
-      <div className="w-full max-w-lg space-y-6">
-        <div className="text-center space-y-1">
-          <PssfLogo priority width={150} height={85} className="mx-auto" />
-          <h1 className="text-2xl font-bold text-[#0D2137]">Activate your account</h1>
-          <p className="text-sm text-[#6B7280]">
-            New to the platform? Verify your identity to get started.
-          </p>
-        </div>
+    <main className="min-h-screen flex items-center justify-center bg-[#F9FAFB] px-4 py-12">
+      {/* Outer Layout Wrapper — Multi-Step Wizard Card (Mockup Style) */}
+      <div className="w-full max-w-5xl bg-white rounded-3xl border border-gray-200/80 shadow-premium overflow-hidden grid grid-cols-1 lg:grid-cols-[60%_40%]">
+        
+        {/* Left Column — Step Flow Form */}
+        <div className="p-8 sm:p-10 flex flex-col justify-between">
+          <div className="space-y-8">
+            
+            {/* Mobile Header Logo */}
+            <div className="lg:hidden flex justify-center mb-4">
+              <PssfLogo priority width={120} height={68} />
+            </div>
 
-        {/* Step indicator */}
-        <div className="flex items-center justify-between px-2 overflow-x-auto">
-          {STEPS.map((s, idx) => {
-            const done = idx < currentIdx
-            const active = idx === currentIdx
-            return (
-              <div key={s.key} className="flex items-center shrink-0">
-                <div className="flex flex-col items-center gap-1">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                      done
-                        ? "bg-[#1A7A4A] text-white"
-                        : active
-                          ? "bg-[#0D2137] text-white"
-                          : "bg-white border-2 border-[#E5E7EB] text-[#6B7280]"
-                    }`}
-                  >
-                    {done ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
-                  </div>
-                  <span
-                    className={`text-xs ${active ? "text-[#0D2137] font-medium" : "text-[#6B7280]"}`}
-                  >
-                    {s.label}
-                  </span>
-                </div>
-                {idx < STEPS.length - 1 && (
-                  <div
-                    className={`h-px w-8 sm:w-12 mx-1 sm:mx-2 mb-5 transition-colors ${idx < currentIdx ? "bg-[#1A7A4A]" : "bg-[#E5E7EB]"}`}
-                  />
-                )}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Step 1: Validate */}
-        {step === "validate" && (
-          <Card className="border-[#E5E7EB]">
-            <CardHeader>
-              <CardTitle className="text-[#0D2137]">Verify your identity</CardTitle>
-              <CardDescription>
-                Enter your National ID, year of birth, and phone number exactly as they appear on
-                your records.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form action={validate} className="space-y-4">
-                <div className="space-y-1">
-                  <Label htmlFor="national_id">National ID number</Label>
-                  <Input id="national_id" name="national_id" placeholder="e.g. 12345678" required />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="year_of_birth">Year of birth</Label>
-                  <Input
-                    id="year_of_birth"
-                    name="year_of_birth"
-                    type="number"
-                    min="1900"
-                    max={new Date().getFullYear()}
-                    placeholder="e.g. 1983"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="phone_validate">Phone number</Label>
-                  <Input
-                    id="phone_validate"
-                    name="phone"
-                    type="tel"
-                    placeholder="+254700000000"
-                    required
-                  />
-                </div>
-
-                {/* Outcome-specific error messages */}
-                {matchStatus === "DOB_MISMATCH" && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      The year of birth you entered does not match our records for this ID. Please
-                      check and try again, or{" "}
-                      <Link href="/member/discrepancy" className="underline font-medium">
-                        report a discrepancy
-                      </Link>
-                      .
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {matchStatus === "NOT_FOUND" && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>{getValidateError()}</AlertDescription>
-                  </Alert>
-                )}
-                {matchStatus === "ALREADY_REGISTERED" && (
-                  <Alert>
-                    <AlertDescription>
-                      An account already exists for this National ID.{" "}
-                      <Link href="/login" className="underline font-medium text-[#1A7A4A]">
-                        Sign in instead
-                      </Link>
-                      .
-                    </AlertDescription>
-                  </Alert>
-                )}
-                {matchStatus === "NO_CONTACT" && (
-                  <Alert variant="destructive">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>{getValidateError()}</AlertDescription>
-                  </Alert>
-                )}
-                {!matchStatus && getValidateError() && (
-                  <p className="text-sm text-[#DC2626]">{getValidateError()}</p>
-                )}
-
-                <Button
-                  type="submit"
-                  disabled={validatePending}
-                  className="w-full bg-[#0D2137] hover:bg-[#0D2137]/90 text-white"
-                >
-                  {validatePending ? "Checking…" : "Continue"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 2: Review */}
-        {step === "review" && memberData && (
-          <Card className="border-[#E5E7EB]">
-            <CardHeader>
-              <CardTitle className="text-[#0D2137]">Review your details</CardTitle>
-              <CardDescription>
-                Locked fields come from verified records. If something is wrong, report a
-                discrepancy before continuing.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                {[
-                  { label: "Full name", value: memberData.full_name, locked: true },
-                  { label: "National ID", value: memberData.national_id, locked: true },
-                  { label: "Year of birth", value: memberData.year_of_birth, locked: true },
-                  { label: "Employer", value: memberData.employer_name, locked: true },
-                  { label: "Member number", value: memberData.member_number, locked: true },
-                ].map(({ label, value, locked }) => (
-                  <div key={label} className="space-y-1">
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs text-[#6B7280]">{label}</Label>
-                      {locked && <Lock className="w-3 h-3 text-[#6B7280]" />}
+            {/* Custom Mockup Wizard Step Tracker */}
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100 overflow-x-auto">
+              {STEPS.map((s, idx) => {
+                const done = idx < currentIdx
+                const active = idx === currentIdx
+                return (
+                  <div key={s.key} className="flex items-center shrink-0">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <div
+                        className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all shadow-sm",
+                          done
+                            ? "bg-[#1A7A4A] text-white"
+                            : active
+                              ? "bg-[#0D2137] text-white ring-4 ring-[#0D2137]/10"
+                              : "bg-white border border-gray-200 text-gray-400"
+                        )}
+                      >
+                        {done ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
+                      </div>
+                      <span
+                        className={cn(
+                          "text-[10px] font-bold uppercase tracking-wider",
+                          active ? "text-[#0D2137]" : "text-gray-400"
+                        )}
+                      >
+                        {s.label}
+                      </span>
                     </div>
-                    <div
-                      className={`px-3 py-2 rounded-md text-sm border ${locked ? "bg-[#F5F5F5] border-[#E5E7EB] text-[#6B7280]" : "bg-white border-[#E5E7EB]"}`}
-                    >
-                      {value || "—"}
-                    </div>
+                    {idx < STEPS.length - 1 && (
+                      <div
+                        className={cn(
+                          "h-0.5 w-6 sm:w-10 mx-2 mb-6 transition-colors",
+                          idx < currentIdx ? "bg-[#1A7A4A]" : "bg-gray-200"
+                        )}
+                      />
+                    )}
                   </div>
-                ))}
-              </div>
+                )
+              })}
+            </div>
 
-              {/* Discrepancy link — Fix 4 */}
-              <Alert className="border-amber-200 bg-amber-50">
-                <AlertDescription className="text-amber-800 text-xs">
-                  Something wrong with the locked details above?{" "}
-                  <Link
-                    href="/member/discrepancy"
-                    className="underline font-semibold hover:text-amber-900"
-                  >
-                    Report a discrepancy
-                  </Link>{" "}
-                  and PSSF will correct it before you proceed.
-                </AlertDescription>
-              </Alert>
-
-              <Separator />
-
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-[#0D2137]">Contact details</p>
-                <div className="space-y-1">
-                  <Label htmlFor="phone">Mobile number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+254700000000"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    required
-                  />
+            {/* Step 1: Validate */}
+            {step === "validate" && (
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <h2 className="text-xl font-black text-[#0D2137]">Verify your identity</h2>
+                  <p className="text-xs text-gray-500">
+                    Enter details exactly as they appear on your official records.
+                  </p>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="email">Email address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="postal_address">Postal address</Label>
-                  <Input
-                    id="postal_address"
-                    placeholder="P.O. Box 1234"
-                    value={postalAddress}
-                    onChange={(e) => setPostalAddress(e.target.value)}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="postal_code">Postal code</Label>
+                <form action={validate} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="national_id" className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                      National ID number
+                    </Label>
+                    <Input id="national_id" name="national_id" placeholder="e.g. 12345678" required className="h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="year_of_birth" className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                      Year of birth
+                    </Label>
                     <Input
-                      id="postal_code"
-                      placeholder="00100"
-                      value={postalCode}
-                      onChange={(e) => setPostalCode(e.target.value)}
+                      id="year_of_birth"
+                      name="year_of_birth"
+                      type="number"
+                      min="1900"
+                      max={new Date().getFullYear()}
+                      placeholder="e.g. 1983"
+                      required
+                      className="h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="town">Town / city</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="phone_validate" className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                      Phone number
+                    </Label>
                     <Input
-                      id="town"
-                      placeholder="Nairobi"
-                      value={town}
-                      onChange={(e) => setTown(e.target.value)}
+                      id="phone_validate"
+                      name="phone"
+                      type="tel"
+                      placeholder="+254700000000"
+                      required
+                      className="h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]"
                     />
                   </div>
-                </div>
-              </div>
 
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setStep("validate")}
-                  className="flex-1 border-[#0D2137] text-[#0D2137]"
-                >
-                  Back
-                </Button>
-                <Button
-                  type="button"
-                  disabled={!phone}
-                  onClick={() => setStep("access")}
-                  className="flex-1 bg-[#0D2137] hover:bg-[#0D2137]/90 text-white"
-                >
-                  Continue
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+                  {matchStatus === "DOB_MISMATCH" && (
+                    <Alert variant="destructive" className="border-red-200 bg-red-50 rounded-xl">
+                      <AlertTriangle className="h-4 w-4 text-red-650" />
+                      <AlertDescription className="text-xs text-red-700">
+                        The birth year does not match records for this ID. Please double check, or{" "}
+                        <Link href="/member/discrepancy" className="underline font-bold">
+                          report a discrepancy
+                        </Link>
+                        .
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {matchStatus === "NOT_FOUND" && (
+                    <Alert variant="destructive" className="border-red-200 bg-red-50 rounded-xl">
+                      <AlertTriangle className="h-4 w-4 text-red-650" />
+                      <AlertDescription className="text-xs text-red-700">{getValidateError()}</AlertDescription>
+                    </Alert>
+                  )}
+                  {matchStatus === "ALREADY_REGISTERED" && (
+                    <Alert className="border-emerald-250 bg-emerald-50 rounded-xl">
+                      <AlertDescription className="text-xs text-emerald-800">
+                        An account already exists for this ID.{" "}
+                        <Link href="/login" className="underline font-bold text-[#1A7A4A]">
+                          Sign in instead
+                        </Link>
+                        .
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {matchStatus === "NO_CONTACT" && (
+                    <Alert variant="destructive" className="border-red-200 bg-red-50 rounded-xl">
+                      <AlertTriangle className="h-4 w-4 text-red-650" />
+                      <AlertDescription className="text-xs text-red-700">{getValidateError()}</AlertDescription>
+                    </Alert>
+                  )}
+                  {!matchStatus && getValidateError() && (
+                    <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 p-2.5 rounded-lg">{getValidateError()}</p>
+                  )}
 
-        {/* Step 3: Set access — Fix 6 adds WhatsApp option */}
-        {step === "access" && memberData && (
-          <Card className="border-[#E5E7EB]">
-            <CardHeader>
-              <CardTitle className="text-[#0D2137]">Set up access</CardTitle>
-              <CardDescription>
-                Choose how you would like to sign in and receive notifications.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-[#0D2137]">Sign-in method</p>
-                <RadioGroup
-                  value={accessMethod}
-                  onValueChange={(v) => setAccessMethod(v as "otp" | "password")}
-                  className="space-y-3"
-                >
-                  <div className="flex items-start gap-3 rounded-lg border p-3">
-                    <RadioGroupItem value="otp" id="access-otp" className="mt-0.5" />
-                    <Label htmlFor="access-otp" className="cursor-pointer space-y-0.5">
-                      <span className="font-medium">OTP only</span>
-                      <p className="text-xs text-[#6B7280] font-normal">
-                        Sign in with a one-time code sent to your mobile each time.
-                      </p>
-                    </Label>
-                  </div>
-                  <div className="flex items-start gap-3 rounded-lg border p-3">
-                    <RadioGroupItem value="password" id="access-password" className="mt-0.5" />
-                    <Label htmlFor="access-password" className="cursor-pointer space-y-0.5">
-                      <span className="font-medium">Password + OTP</span>
-                      <p className="text-xs text-[#6B7280] font-normal">
-                        Set a password for faster sign-in, confirmed with OTP.
-                      </p>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {accessMethod === "password" && (
-                <div className="space-y-1">
-                  <Label htmlFor="password">Choose a password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="At least 8 characters"
-                    minLength={8}
-                  />
-                </div>
-              )}
-
-              <Separator />
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-[#0D2137]">Notification preference</p>
-                <RadioGroup
-                  value={commPref}
-                  onValueChange={(v) => setCommPref(v as typeof commPref)}
-                  className="space-y-3"
-                >
-                  <div className="flex items-start gap-3 rounded-lg border p-3">
-                    <RadioGroupItem value="PORTAL" id="pref-portal" className="mt-0.5" />
-                    <Label htmlFor="pref-portal" className="cursor-pointer space-y-0.5">
-                      <span className="font-medium">Portal only</span>
-                      <p className="text-xs text-[#6B7280] font-normal">
-                        Receive notifications inside the PSSF portal.
-                      </p>
-                    </Label>
-                  </div>
-                  <div className="flex items-start gap-3 rounded-lg border p-3">
-                    <RadioGroupItem value="WHATSAPP" id="pref-whatsapp" className="mt-0.5" />
-                    <Label htmlFor="pref-whatsapp" className="cursor-pointer space-y-0.5">
-                      <span className="font-medium">WhatsApp</span>
-                      <p className="text-xs text-[#6B7280] font-normal">
-                        Receive case updates via WhatsApp on your mobile number.
-                      </p>
-                    </Label>
-                  </div>
-                  <div className="flex items-start gap-3 rounded-lg border p-3">
-                    <RadioGroupItem value="EMAIL" id="pref-email" className="mt-0.5" />
-                    <Label htmlFor="pref-email" className="cursor-pointer space-y-0.5">
-                      <span className="font-medium">Email</span>
-                      <p className="text-xs text-[#6B7280] font-normal">
-                        Receive case updates via email.
-                      </p>
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              {otpSendState?.error && (
-                <p className="text-sm text-[#DC2626]">{otpSendState.error}</p>
-              )}
-
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setStep("review")}
-                  className="flex-1 border-[#0D2137] text-[#0D2137]"
-                >
-                  Back
-                </Button>
-                <form action={sendOtp} className="flex-1">
-                  <input type="hidden" name="phone" value={phone} />
-                  <input type="hidden" name="email" value={email} />
                   <Button
                     type="submit"
-                    disabled={
-                      otpSendPending ||
-                      !phone ||
-                      (accessMethod === "password" && password.length < 8)
-                    }
-                    className="w-full bg-[#0D2137] hover:bg-[#0D2137]/90 text-white"
+                    disabled={validatePending}
+                    className="w-full bg-[#0D2137] hover:bg-[#12304b] text-white rounded-full h-11 text-xs font-bold transition-all shadow-md active:scale-98 cursor-pointer mt-2"
                   >
-                    {otpSendPending ? "Sending…" : "Send OTP"}
+                    {validatePending ? "Verifying Identity…" : "Verify Identity"}
                   </Button>
                 </form>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
 
-        {/* Step 4: OTP verify */}
-        {step === "otp" && memberData && (
-          <Card className="border-[#E5E7EB]">
-            <CardHeader>
-              <CardTitle className="text-[#0D2137]">Verify your account</CardTitle>
-              <CardDescription>
-                Enter the 6-character code sent to{" "}
-                <span className="font-medium text-[#111827]">{phone}</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form action={activate} className="space-y-4">
-                <input type="hidden" name="phone" value={phone} />
-                <input type="hidden" name="national_id" value={memberData.national_id} />
-                <input type="hidden" name="full_name" value={memberData.full_name} />
-                <input type="hidden" name="email" value={email} />
-                <input type="hidden" name="postal_address" value={postalAddress} />
-                <input type="hidden" name="postal_code" value={postalCode} />
-                <input type="hidden" name="town" value={town} />
-                <input type="hidden" name="access_method" value={accessMethod} />
-                <input type="hidden" name="communication_pref" value={commPref} />
-                {accessMethod === "password" && (
-                  <input type="hidden" name="password" value={password} />
-                )}
-                <div className="space-y-1">
-                  <Label htmlFor="signup-code">Verification code</Label>
-                  <Input
-                    id="signup-code"
-                    name="code"
-                    type="text"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    placeholder="ABC123"
-                    required
-                    autoFocus
-                    className="tracking-widest text-center text-lg uppercase"
-                    onChange={(e) => {
-                      e.target.value = e.target.value.toUpperCase()
-                    }}
-                  />
+            {/* Step 2: Review */}
+            {step === "review" && memberData && (
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <h2 className="text-xl font-black text-[#0D2137]">Review your details</h2>
+                  <p className="text-xs text-gray-500">
+                    Locked fields are verified from databases. Correct contact details below if needed.
+                  </p>
+                </div>
+                
+                <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+                  {/* Verified Blocks */}
+                  <div className="grid grid-cols-2 gap-3.5 bg-gray-50 border border-gray-150 p-4 rounded-2xl">
+                    <p className="col-span-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <UserCheck className="size-3.5 text-[#1A7A4A]" />
+                      Verified Records
+                    </p>
+                    {[
+                      { label: "Full name", value: memberData.full_name, span: true },
+                      { label: "National ID", value: memberData.national_id, span: false },
+                      { label: "Member Number", value: memberData.member_number, span: false },
+                      { label: "Employer", value: memberData.employer_name, span: true }
+                    ].map(({ label, value, span }) => (
+                      <div key={label} className={cn("space-y-1", span ? "col-span-2" : "col-span-1")}>
+                        <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                          {label}
+                          <Lock className="size-2.5 text-gray-400" />
+                        </Label>
+                        <p className="text-xs font-bold text-[#0D2137] truncate">{value || "—"}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Alert className="border-amber-100 bg-amber-50 rounded-xl">
+                    <AlertDescription className="text-amber-800 text-[11px] leading-normal">
+                      Something wrong with locked records?{" "}
+                      <Link href="/member/discrepancy" className="underline font-bold hover:text-amber-950">
+                        Report discrepancy
+                      </Link>{" "}
+                      so PSSF can update it.
+                    </AlertDescription>
+                  </Alert>
+
+                  <Separator className="bg-gray-150" />
+
+                  {/* Form fields */}
+                  <div className="space-y-3.5">
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Contact details</p>
+                    
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone" className="text-xs font-bold uppercase tracking-wider text-gray-400">Mobile number</Label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                          <Smartphone className="size-4" />
+                        </span>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          required
+                          className="pl-9 h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-gray-400">Email address</Label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                          <Mail className="size-4" />
+                        </span>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          className="pl-9 h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="postal_address" className="text-xs font-bold uppercase tracking-wider text-gray-400">Postal address</Label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                          <Home className="size-4" />
+                        </span>
+                        <Input
+                          id="postal_address"
+                          placeholder="P.O. Box 1234"
+                          value={postalAddress}
+                          onChange={(e) => setPostalAddress(e.target.value)}
+                          className="pl-9 h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3.5">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="postal_code" className="text-xs font-bold uppercase tracking-wider text-gray-400">Postal code</Label>
+                        <Input
+                          id="postal_code"
+                          placeholder="00100"
+                          value={postalCode}
+                          onChange={(e) => setPostalCode(e.target.value)}
+                          className="h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="town" className="text-xs font-bold uppercase tracking-wider text-gray-400">Town / city</Label>
+                        <Input
+                          id="town"
+                          placeholder="Nairobi"
+                          value={town}
+                          onChange={(e) => setTown(e.target.value)}
+                          className="h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {activateState?.error && (
-                  <p className="text-sm text-[#DC2626]">{activateState.error}</p>
-                )}
-
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-2">
                   <Button
-                    type="button"
                     variant="outline"
-                    onClick={() => setStep("access")}
-                    className="flex-1 border-[#0D2137] text-[#0D2137]"
+                    type="button"
+                    onClick={() => setStep("validate")}
+                    className="flex-1 border-gray-250 hover:bg-gray-50 rounded-full h-11 text-xs font-bold text-[#0D2137] cursor-pointer"
                   >
                     Back
                   </Button>
                   <Button
-                    type="submit"
-                    disabled={activatePending}
-                    className="flex-1 bg-[#0D2137] hover:bg-[#0D2137]/90 text-white"
+                    type="button"
+                    disabled={!phone}
+                    onClick={() => setStep("access")}
+                    className="flex-1 bg-[#0D2137] hover:bg-[#12304b] text-white rounded-full h-11 text-xs font-bold cursor-pointer transition-all active:scale-98 shadow-md"
                   >
-                    {activatePending ? "Activating…" : "Activate account"}
+                    Continue
                   </Button>
                 </div>
-
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={otpSendPending}
-                    className="text-sm text-[#1A7A4A] hover:underline disabled:text-[#6B7280] disabled:no-underline disabled:cursor-not-allowed"
-                  >
-                    {otpSendPending ? "Sending…" : "Resend code"}
-                  </button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Step 5: Activated */}
-        {step === "activated" && (
-          <Card className="border-[#E5E7EB]">
-            <CardContent className="pt-6 text-center space-y-4">
-              <div className="flex justify-center">
-                <CheckCircle2 className="w-12 h-12 text-[#1A7A4A]" />
               </div>
-              <h2 className="text-lg font-semibold text-[#0D2137]">Account activated</h2>
-              <p className="text-sm text-[#6B7280]">
-                Your PSSF self-service account has been activated. You can now enrol, update
-                beneficiaries, submit claims, view statements, and track requests.
-              </p>
-              <Badge variant="outline" className="text-[#1A7A4A] border-[#1A7A4A]">
-                Active
-              </Badge>
-              <Button asChild className="w-full bg-[#1A7A4A] hover:bg-[#145f3a] text-white">
-                <Link href="/member/dashboard">Go to dashboard</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+            )}
 
-        <p className="text-center text-sm text-[#6B7280]">
-          Already have an account?{" "}
-          <Link href="/login" className="text-[#1A7A4A] font-medium hover:underline">
-            Sign in
-          </Link>
-        </p>
+            {/* Step 3: Access */}
+            {step === "access" && memberData && (
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <h2 className="text-xl font-black text-[#0D2137]">Set up access</h2>
+                  <p className="text-xs text-gray-500">
+                    Define authentication details and notification preferences.
+                  </p>
+                </div>
+
+                <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Sign-in method</p>
+                    <RadioGroup
+                      value={accessMethod}
+                      onValueChange={(v) => setAccessMethod(v as "otp" | "password")}
+                      className="space-y-3"
+                    >
+                      <div className={cn("flex items-start gap-3 rounded-2xl border p-4 transition-all hover:bg-gray-50", accessMethod === "otp" && "border-[#1A7A4A] bg-[#E8F5EE]/10")}>
+                        <RadioGroupItem value="otp" id="access-otp" className="mt-0.5" />
+                        <Label htmlFor="access-otp" className="cursor-pointer space-y-0.5 flex-1">
+                          <span className="text-xs font-extrabold text-[#0D2137]">One-Time Password (OTP) only</span>
+                          <p className="text-[11px] text-gray-500 font-medium">
+                            Request a cryptographically secure code to mobile on every login session.
+                          </p>
+                        </Label>
+                      </div>
+                      <div className={cn("flex items-start gap-3 rounded-2xl border p-4 transition-all hover:bg-gray-50", accessMethod === "password" && "border-[#1A7A4A] bg-[#E8F5EE]/10")}>
+                        <RadioGroupItem value="password" id="access-password" className="mt-0.5" />
+                        <Label htmlFor="access-password" className="cursor-pointer space-y-0.5 flex-1">
+                          <span className="text-xs font-extrabold text-[#0D2137]">Password + OTP Verification</span>
+                          <p className="text-[11px] text-gray-500 font-medium">
+                            Secure your portal with a static password and confirm sessions via OTP.
+                          </p>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  {accessMethod === "password" && (
+                    <div className="space-y-1.5 animate-in fade-in-50 duration-150">
+                      <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-gray-400">Choose a password</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Minimum 8 characters"
+                        className="h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]"
+                        minLength={8}
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <Separator className="bg-gray-150" />
+
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-widest text-gray-400">Notification preference</p>
+                    <RadioGroup
+                      value={commPref}
+                      onValueChange={(v) => setCommPref(v as typeof commPref)}
+                      className="space-y-3"
+                    >
+                      {[
+                        { k: "PORTAL", label: "Portal Workspace only", desc: "Access messages and notification records directly inside the user dashboard." },
+                        { k: "WHATSAPP", label: "WhatsApp Alerts", desc: "Receive immediate case milestones and tracking status alerts on your phone." },
+                        { k: "EMAIL", label: "Direct Email Updates", desc: "Get detailed progress summaries and case letters sent directly to your inbox." }
+                      ].map((item) => (
+                        <div key={item.k} className={cn("flex items-start gap-3 rounded-2xl border p-4 transition-all hover:bg-gray-50", commPref === item.k && "border-[#1A7A4A] bg-[#E8F5EE]/10")}>
+                          <RadioGroupItem value={item.k} id={`pref-${item.k}`} className="mt-0.5" />
+                          <Label htmlFor={`pref-${item.k}`} className="cursor-pointer space-y-0.5 flex-1">
+                            <span className="text-xs font-extrabold text-[#0D2137]">{item.label}</span>
+                            <p className="text-[11px] text-gray-500 font-medium">{item.desc}</p>
+                          </Label>
+                        </div>
+                      ))}
+                    </RadioGroup>
+                  </div>
+                </div>
+
+                {otpSendState?.error && (
+                  <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 p-2.5 rounded-lg">{otpSendState.error}</p>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="outline"
+                    type="button"
+                    onClick={() => setStep("review")}
+                    className="flex-1 border-gray-250 hover:bg-gray-50 rounded-full h-11 text-xs font-bold text-[#0D2137] cursor-pointer"
+                  >
+                    Back
+                  </Button>
+                  <form action={sendOtp} className="flex-1">
+                    <input type="hidden" name="phone" value={phone} />
+                    <input type="hidden" name="email" value={email} />
+                    <Button
+                      type="submit"
+                      disabled={
+                        otpSendPending ||
+                        !phone ||
+                        (accessMethod === "password" && password.length < 8)
+                      }
+                      className="w-full bg-[#0D2137] hover:bg-[#12304b] text-white rounded-full h-11 text-xs font-bold cursor-pointer transition-all active:scale-98 shadow-md"
+                    >
+                      {otpSendPending ? "Sending OTP…" : "Request OTP Code"}
+                    </Button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: OTP verify */}
+            {step === "otp" && memberData && (
+              <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <h2 className="text-xl font-black text-[#0D2137]">Verify your account</h2>
+                  <p className="text-xs text-gray-500">
+                    Verify possession of your reviewed phone number to activate.
+                  </p>
+                </div>
+                <form action={activate} className="space-y-4">
+                  <input type="hidden" name="phone" value={phone} />
+                  <input type="hidden" name="national_id" value={memberData.national_id} />
+                  <input type="hidden" name="full_name" value={memberData.full_name} />
+                  <input type="hidden" name="email" value={email} />
+                  <input type="hidden" name="postal_address" value={postalAddress} />
+                  <input type="hidden" name="postal_code" value={postalCode} />
+                  <input type="hidden" name="town" value={town} />
+                  <input type="hidden" name="access_method" value={accessMethod} />
+                  <input type="hidden" name="communication_pref" value={commPref} />
+                  {accessMethod === "password" && (
+                    <input type="hidden" name="password" value={password} />
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-code" className="text-xs font-bold uppercase tracking-wider text-gray-400">Verification code</Label>
+                    <Input
+                      id="signup-code"
+                      name="code"
+                      type="text"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      placeholder="ENTER CODE"
+                      required
+                      autoFocus
+                      className="tracking-widest text-center text-lg font-bold h-12 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A] focus-visible:border-[#1A7A4A]"
+                      onChange={(e) => {
+                        e.target.value = e.target.value.toUpperCase()
+                      }}
+                    />
+                    <p className="text-[10px] text-gray-500">
+                      OTP code sent to mobile number <span className="font-semibold text-gray-750">{phone}</span>.
+                    </p>
+                  </div>
+
+                  {activateState?.error && (
+                    <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 p-2.5 rounded-lg">{activateState.error}</p>
+                  )}
+
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setStep("access")}
+                      className="flex-1 border-gray-250 hover:bg-gray-50 rounded-full h-11 text-xs font-bold text-[#0D2137] cursor-pointer"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={activatePending}
+                      className="flex-1 bg-[#0D2137] hover:bg-[#12304b] text-white rounded-full h-11 text-xs font-bold cursor-pointer transition-all active:scale-98 shadow-md"
+                    >
+                      {activatePending ? "Activating account…" : "Confirm Activation"}
+                    </Button>
+                  </div>
+
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={handleResend}
+                      disabled={otpSendPending}
+                      className="text-xs font-bold text-[#1A7A4A] hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
+                    >
+                      {otpSendPending ? "Sending new code…" : "Resend one-time code"}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Step 5: Activated */}
+            {step === "activated" && (
+              <div className="text-center space-y-5 py-4">
+                <div className="flex justify-center">
+                  <span className="flex size-14 items-center justify-center rounded-full bg-emerald-100 text-[#1A7A4A]">
+                    <CheckCircle2 className="size-8" />
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-black text-[#0D2137]">Account Activated!</h2>
+                  <p className="text-xs leading-relaxed text-gray-500 max-w-sm mx-auto">
+                    Your PSSF Smart Self-Service account is successfully activated. You can now access all pension tools, submit claim applications, nominate beneficiaries, and track requests.
+                  </p>
+                </div>
+                
+                <div className="pt-2">
+                  <Button asChild className="w-full bg-[#1A7A4A] hover:bg-[#1A7A4A]/90 text-white rounded-full h-11 text-xs font-bold shadow-md cursor-pointer transition-all active:scale-98">
+                    <Link href="/member/dashboard">Go to Portal Dashboard</Link>
+                  </Button>
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* Footer sign in link */}
+          {step !== "activated" && (
+            <div className="mt-8 pt-4 border-t border-gray-150 text-center">
+              <p className="text-xs text-gray-500">
+                Already activated your account?{" "}
+                <Link href="/login" className="text-[#1A7A4A] font-extrabold hover:underline inline-flex items-center gap-0.5">
+                  Sign in here
+                  <ArrowRight className="size-3 mt-0.5" />
+                </Link>
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column — Dynamic Context Sidebar Panel (Mockup Style) */}
+        <div className="relative bg-[#0D2137] text-white p-10 flex flex-col justify-between overflow-hidden hidden lg:flex">
+          {/* Background decorations */}
+          <div aria-hidden className="pointer-events-none absolute inset-0">
+            <div className="absolute top-0 right-0 size-64 rounded-full bg-[#1A7A4A]/20 blur-2xl" />
+            <div className="absolute bottom-0 left-0 size-64 rounded-full bg-blue-500/5 blur-2xl" />
+            <div className="absolute inset-0 bg-grid-dots [mask-image:radial-gradient(ellipse_at_center,white_30%,transparent_100%)] opacity-15" />
+          </div>
+
+          {/* Top Logo */}
+          <div className="relative">
+            <PssfLogo variant="onDark" width={120} height={70} className="opacity-95" />
+          </div>
+
+          {/* Dynamic help panels depending on the active step */}
+          <div className="relative space-y-6 my-auto pt-6">
+            
+            {step === "validate" && (
+              <div className="space-y-4 animate-in fade-in-50 duration-200">
+                <h2 className="text-xl font-bold leading-tight">Identity verification</h2>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  To secure your statutory benefits, PSSF checks your identity records prior to registration.
+                </p>
+                <div className="space-y-3.5 pt-2">
+                  {[
+                    "Matches National ID and birth year with government HR payroll records.",
+                    "Protects details from unauthorized access claims.",
+                    "Provides secure foundation for digital pension statements."
+                  ].map((txt, i) => (
+                    <div key={i} className="flex gap-2.5 text-xs text-gray-300 leading-relaxed">
+                      <span className="flex size-4.5 items-center justify-center rounded-full bg-[#1A7A4A] text-white shrink-0 mt-0.5 text-[10px] font-bold">✓</span>
+                      <p>{txt}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {step === "review" && (
+              <div className="space-y-4 animate-in fade-in-50 duration-200">
+                <h2 className="text-xl font-bold leading-tight">Verify PSSF details</h2>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Double check locked records. If something appears incorrect, we will flag it for corrective action.
+                </p>
+                <div className="space-y-3.5 pt-2">
+                  {[
+                    "Locked name, ID, and employer details are official records from your ministry.",
+                    "Contact info is used for direct verification and statements.",
+                    "You can correct spelling and discrepancy flags via the helpline."
+                  ].map((txt, i) => (
+                    <div key={i} className="flex gap-2.5 text-xs text-gray-300 leading-relaxed">
+                      <span className="flex size-4.5 items-center justify-center rounded-full bg-[#1A7A4A] text-white shrink-0 mt-0.5 text-[10px] font-bold">✓</span>
+                      <p>{txt}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {step === "access" && (
+              <div className="space-y-4 animate-in fade-in-50 duration-200">
+                <h2 className="text-xl font-bold leading-tight">Access & updates</h2>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Choose an authentication workflow that suits your daily usage.
+                </p>
+                <div className="space-y-3.5 pt-2">
+                  {[
+                    "OTP authentication sends verification alerts for maximum compliance.",
+                    "Password sign-in enables faster credential logging.",
+                    "WhatsApp notifications provide real-time updates directly on your chat."
+                  ].map((txt, i) => (
+                    <div key={i} className="flex gap-2.5 text-xs text-gray-300 leading-relaxed">
+                      <span className="flex size-4.5 items-center justify-center rounded-full bg-[#1A7A4A] text-white shrink-0 mt-0.5 text-[10px] font-bold">✓</span>
+                      <p>{txt}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {step === "otp" && (
+              <div className="space-y-4 animate-in fade-in-50 duration-200">
+                <h2 className="text-xl font-bold leading-tight">Security check</h2>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Confirm possession of the mobile number you verified in the profile step.
+                </p>
+                <div className="space-y-3.5 pt-2">
+                  {[
+                    "Protects your credentials from spoofing and account hijacking.",
+                    "Verification code expires within 10 minutes.",
+                    "You can resend a fresh verification token if it does not arrive."
+                  ].map((txt, i) => (
+                    <div key={i} className="flex gap-2.5 text-xs text-gray-300 leading-relaxed">
+                      <span className="flex size-4.5 items-center justify-center rounded-full bg-[#1A7A4A] text-white shrink-0 mt-0.5 text-[10px] font-bold">✓</span>
+                      <p>{txt}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {step === "activated" && (
+              <div className="space-y-4 animate-in fade-in-50 duration-200">
+                <h2 className="text-xl font-bold leading-tight">Activation complete</h2>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  You are all set! Welcome to your digital PSSF portal workspace.
+                </p>
+                <div className="space-y-3.5 pt-2">
+                  {[
+                    "Instantly file pension statements and check contributions.",
+                    "Update allocations and manage claims paper-free.",
+                    "IT support and security guardrails active 24/7."
+                  ].map((txt, i) => (
+                    <div key={i} className="flex gap-2.5 text-xs text-gray-300 leading-relaxed">
+                      <span className="flex size-4.5 items-center justify-center rounded-full bg-[#1A7A4A] text-white shrink-0 mt-0.5 text-[10px] font-bold">✓</span>
+                      <p>{txt}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+
+          {/* Bottom Badge */}
+          <div className="relative flex items-center gap-2 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+            <Lock className="size-3 text-[#5BD99A]" />
+            Verification Guard active
+          </div>
+
+        </div>
+
       </div>
     </main>
   )

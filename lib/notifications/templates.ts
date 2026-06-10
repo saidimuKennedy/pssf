@@ -70,6 +70,11 @@ const WHATSAPP_TEMPLATES: Record<string, (vars: Variables) => string> = {
       "Your PSSF [case_type_label] (Ref: [case_reference]) has been submitted successfully. We will notify you when it is reviewed.",
       v
     ),
+  tpl_pending_employer_wa: (v) =>
+    sub(
+      "Action required: [member_name] has submitted a PSSF [case_type_label] (Ref: [case_reference]) that requires your confirmation. Please log in to the PSSF portal.",
+      v
+    ),
   tpl_employer_approved_wa: (v) =>
     sub(
       "Your PSSF [case_type_label] (Ref: [case_reference]) has been confirmed by your employer. It is now under PSSF review. We will notify you when there is an update.",
@@ -205,44 +210,43 @@ export const WA_META_TEMPLATES: Record<string, MetaTemplateEntry> = {
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
     ],
   },
-  // UTILITY notifications — single body parameter = pre-resolved message text
-  tpl_employer_approved_wa: {
-    name: "pssf_employe_approved",
+  tpl_pending_employer_wa: {
+    name: "pssf_pending_employer_copy",
     language: "en_US",
     components: (v) => [
-      { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
+      { type: "body", parameters: [{ type: "text", text: v.member_name ?? "" }, { type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
     ],
   },
   tpl_employer_rejected_wa: {
-    name: "pssf_rejected_employer",
+    name: "pssf_rejected_employer_copy",
     language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }, { type: "text", text: v.rejection_reason ?? "" }] },
     ],
   },
   tpl_more_info_required_wa: {
-    name: "pssf_additional_info_required",
+    name: "pssf_additional_info_required_copy",
     language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
     ],
   },
   tpl_case_approved_wa: {
-    name: "pss_approved_case",
+    name: "pss_approved_case_copy",
     language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
     ],
   },
   tpl_case_rejected_wa: {
-    name: "pssf_case_rejected",
+    name: "pssf_case_rejected_copy",
     language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }, { type: "text", text: v.rejection_reason ?? "" }] },
     ],
   },
   tpl_payment_processing_wa: {
-    name: "pssf_payment_processing",
+    name: "pssf_payment_processing_copy",
     language: "en_US",
     components: (v) => [
       { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
@@ -256,7 +260,7 @@ export const WA_META_TEMPLATES: Record<string, MetaTemplateEntry> = {
     ],
   },
   tpl_statement_wa: {
-    name: "pssf_payment_statement",
+    name: "pssf_payment_statement_copy",
     language: "en_US",
     components: (v) => [
       { type: "body", parameters: [

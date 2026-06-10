@@ -1,18 +1,41 @@
+"use client"
+
 import Link from "next/link"
 import { BadgeCheck, CheckCircle2, Clock, FileText, Lock, Search, Shield, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { PssfLogo } from "@/components/pssf-logo"
+import { cn } from "@/lib/utils"
 
-const TRUST_BADGES = [
-  { icon: Shield, label: "Secure & Encrypted", sub: "Bank-level security" },
-  { icon: BadgeCheck, label: "Statutory Compliant", sub: "100% compliant" },
-  { icon: Clock, label: "Always Available", sub: "24/7 Self-service" },
-  { icon: FileText, label: "Paperless Process", sub: "Save time & resources" },
+const BADGES = [
+  {
+    icon: Shield,
+    label: "Secure & Encrypted",
+    sub: "Bank-level data security protocols",
+    highlighted: false,
+  },
+  {
+    icon: BadgeCheck,
+    label: "Statutory Compliant",
+    sub: "100% compliant with PSSF regulations",
+    highlighted: true,
+  },
+  {
+    icon: Clock,
+    label: "Always Available",
+    sub: "24/7 self-service portal access",
+    highlighted: false,
+  },
+  {
+    icon: FileText,
+    label: "Paperless Process",
+    sub: "Submit and track online instantly",
+    highlighted: false,
+  },
 ]
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#E8F5EE]/40 via-white to-[#EFF6FF]/40 pt-24 pb-16">
+    <section className="relative overflow-hidden bg-gradient-to-br from-[#E8F5EE]/40 via-white to-[#EFF6FF]/40 pt-24 pb-20">
       {/* Decorative background */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute top-0 left-0 right-0 h-[600px] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(26,122,74,0.12),rgba(255,255,255,0))]" />
@@ -21,11 +44,14 @@ export function Hero() {
         <div className="absolute inset-0 bg-grid-dots [mask-image:radial-gradient(ellipse_at_center,white_60%,transparent_100%)] opacity-70" />
       </div>
 
-      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-20">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-[54%_46%] gap-12 lg:gap-10 items-center">
-          {/* Left */}
-          <div className="space-y-7">
-          
+          {/* Left Column */}
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-[#E8F5EE] px-3.5 py-1.5 text-xs font-bold text-[#1A7A4A] border border-[#1A7A4A]/10">
+              <Sparkles className="size-3.5 text-[#1A7A4A]" />
+              PSSF Smart Self-Service
+            </div>
 
             <h1 className="text-4xl sm:text-5xl xl:text-6xl font-extrabold leading-[1.1] tracking-tight">
               <span className="text-[#0D2137]">Your pension.</span>
@@ -40,11 +66,29 @@ export function Hero() {
               requests, upload documents, track progress and receive real-time updates.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-3.5">
+            {/* Quick Stats sub-row */}
+            <div className="flex items-center gap-8 py-3 border-y border-gray-150/70 max-w-md">
+              <div>
+                <p className="text-xl sm:text-2xl font-black text-[#0D2137]">100%</p>
+                <p className="text-[10px] text-gray-500 font-bold tracking-wide uppercase">Compliant</p>
+              </div>
+              <div className="h-8 w-px bg-gray-200" />
+              <div>
+                <p className="text-xl sm:text-2xl font-black text-[#0D2137]">24/7</p>
+                <p className="text-[10px] text-gray-500 font-bold tracking-wide uppercase">Self-Service</p>
+              </div>
+              <div className="h-8 w-px bg-gray-200" />
+              <div>
+                <p className="text-xl sm:text-2xl font-black text-[#0D2137]">Real-Time</p>
+                <p className="text-[10px] text-gray-500 font-bold tracking-wide uppercase">Tracking</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3.5 pt-2">
               <Button
                 asChild
                 size="lg"
-                className="group bg-[#0D2137] hover:bg-[#12304b] text-white h-12 px-7 shadow-lg shadow-[#0D2137]/15 hover:shadow-xl hover:shadow-[#0D2137]/25 hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl duration-200 font-medium"
+                className="group bg-[#0D2137] hover:bg-[#12304b] text-white h-12 px-7 shadow-lg shadow-[#0D2137]/15 hover:shadow-xl hover:shadow-[#0D2137]/25 hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl duration-200 font-bold text-sm"
               >
                 <Link href="/login">
                   <Lock className="size-4 mr-1.5 transition-transform group-hover:scale-110" />
@@ -55,32 +99,20 @@ export function Hero() {
                 asChild
                 variant="outline"
                 size="lg"
-                className="glass-panel border-gray-250 text-[#0D2137] hover:bg-white/90 h-12 px-7 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl duration-200 font-medium"
+                className="glass-panel border-gray-250 text-[#0D2137] hover:bg-white/90 h-12 px-7 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all rounded-xl duration-200 font-bold text-sm"
               >
                 <Link href="/track">
                   <Search className="size-4 mr-1.5 text-[#1A7A4A]" />
-                  Track Existing Request
+                  Track Request
                 </Link>
               </Button>
             </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-gray-150">
-              {TRUST_BADGES.map(({ icon: Icon, label, sub }) => (
-                <div key={label} className="group flex flex-col gap-1.5 p-3 rounded-xl hover:bg-white/40 hover:shadow-sm transition-all duration-200 border border-transparent hover:border-white/50">
-                  <span className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-[#E8F5EE] to-[#EFF6FF] group-hover:scale-105 transition-transform">
-                    <Icon className="size-4.5 text-[#1A7A4A]" aria-hidden />
-                  </span>
-                  <p className="text-xs font-bold text-[#0D2137]">{label}</p>
-                  <p className="text-[10px] text-gray-500 leading-snug">{sub}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
-          {/* Right — branded preview card */}
-          <div className="relative animate-float">
+          {/* Right Column — Branded preview card */}
+          <div className="relative animate-float lg:pl-6">
             {/* Outer decorative glowing shadow */}
-            <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-tr from-[#1A7A4A]/15 to-[#0D9488]/15 blur-2xl" aria-hidden />
+            <div className="absolute -inset-2 rounded-[2.5rem] bg-gradient-to-tr from-[#1A7A4A]/15 to-[#0D9488]/15 blur-2xl" aria-hidden />
             
             {/* Main window container */}
             <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-gradient-to-br from-[#0D2137] via-[#12304B] to-[#0D2137] p-6 sm:p-8 shadow-2xl ring-1 ring-white/10">
@@ -103,7 +135,7 @@ export function Hero() {
                 />
                 <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 border border-emerald-500/20">
                   <span className="relative flex size-1.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75 animate-duration-1000"></span>
                     <span className="relative inline-flex rounded-full size-1.5 bg-emerald-500"></span>
                   </span>
                   <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase">Live Sync</span>
@@ -156,7 +188,54 @@ export function Hero() {
                 ))}
               </div>
             </div>
+
+            {/* Floating Guide / Watch Button (mockup style) */}
+            <button className="absolute -left-6 bottom-12 group flex items-center gap-3 rounded-full bg-white p-2.5 pr-6 shadow-2xl border border-gray-100 transition-all duration-300 hover:scale-105 active:scale-98 cursor-pointer">
+              <span className="flex size-10 items-center justify-center rounded-full bg-[#1A7A4A] text-white transition-transform group-hover:scale-110">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="size-4.5 ml-0.5" aria-hidden>
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </span>
+              <div className="text-left">
+                <p className="text-xs font-extrabold text-[#0D2137]">Watch Guide</p>
+                <p className="text-[10px] text-gray-500">How it works (2 min)</p>
+              </div>
+            </button>
           </div>
+        </div>
+      </div>
+
+      {/* Overlapping Trust Badges Grid (bottom) */}
+      <div className="relative z-20 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-12 -mb-28">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {BADGES.map(({ icon: Icon, label, sub, highlighted }) => (
+            <div
+              key={label}
+              className={cn(
+                "group flex flex-col gap-2 p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1.5 shadow-premium hover:shadow-xl border",
+                highlighted
+                  ? "bg-[#0D2137] text-white border-transparent"
+                  : "bg-white/95 border-gray-150/70 text-[#0D2137]"
+              )}
+            >
+              <span
+                className={cn(
+                  "flex size-11 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-105 shadow-inner",
+                  highlighted
+                    ? "bg-[#1A7A4A] text-white"
+                    : "bg-[#E8F5EE] text-[#1A7A4A]"
+                )}
+              >
+                <Icon className="size-5" aria-hidden />
+              </span>
+              <h3 className={cn("text-sm font-bold mt-2", highlighted ? "text-[#5BD99A]" : "text-[#0D2137]")}>
+                {label}
+              </h3>
+              <p className={cn("text-xs leading-normal", highlighted ? "text-gray-300" : "text-gray-500")}>
+                {sub}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>

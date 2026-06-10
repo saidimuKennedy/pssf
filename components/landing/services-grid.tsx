@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import type { LucideIcon } from "lucide-react"
@@ -11,6 +13,7 @@ import {
   UserPlus,
   Users,
 } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface ServiceCard {
   name: string
@@ -90,7 +93,7 @@ const SERVICES: ServiceCard[] = [
 
 export function ServicesGrid() {
   return (
-    <section id="services" className="relative bg-white py-20 lg:py-24 overflow-hidden">
+    <section id="services" className="relative bg-white pt-40 pb-20 lg:pt-48 lg:pb-24 overflow-hidden">
       {/* Decorative background grid and blurs */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute top-1/2 left-1/4 size-[500px] rounded-full bg-[#1A7A4A]/3 blur-3xl" />
@@ -98,19 +101,32 @@ export function ServicesGrid() {
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#1A7A4A]">
-            Services
-          </p>
-          <h2 className="mt-2 text-3xl sm:text-4xl font-bold tracking-tight text-[#0D2137]">
-            How can we help you today?
-          </h2>
-          <p className="mt-3 text-base text-gray-500 max-w-xl mx-auto">
-            Choose a service to get started — everything in one place.
-          </p>
+        {/* Split Header layout (Mockup Style) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end mb-16">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-[#1A7A4A]">
+              Services & Features
+            </p>
+            <h2 className="mt-2.5 text-3xl sm:text-4xl font-extrabold tracking-tight text-[#0D2137] max-w-lg leading-tight">
+              We provide the best self-service pension solutions
+            </h2>
+          </div>
+          <div className="lg:text-right space-y-3">
+            <p className="text-sm leading-relaxed text-gray-500 max-w-md lg:ml-auto">
+              Access secure online tools to update details, nominate beneficiaries, submit claims, and track contributions.
+            </p>
+            <a 
+              href="#how-it-works" 
+              className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#1A7A4A] hover:text-[#1A7A4A]/80 transition-colors"
+            >
+              See how it works
+              <ArrowRight className="size-3.5" />
+            </a>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* Services Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {SERVICES.map((service) => {
             const Icon = service.icon
             return (
@@ -118,26 +134,26 @@ export function ServicesGrid() {
                 key={service.href}
                 href={service.href}
                 className={cn(
-                  "group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200/50 bg-white/60 p-6 transition-all duration-300 hover:-translate-y-1.5 shadow-sm hover:shadow-xl hover:bg-white",
+                  "group relative flex flex-col overflow-hidden rounded-2xl border border-gray-200/50 bg-white p-7 transition-all duration-300 hover:-translate-y-1.5 shadow-premium hover:shadow-xl hover:bg-white",
                   service.hoverGlow
                 )}
               >
-                {/* Top accent accentuates hover */}
+                {/* Accent bar */}
                 <span
                   aria-hidden
                   className="absolute inset-x-0 top-0 h-[3px] origin-left scale-x-0 transition-transform duration-300 group-hover:scale-x-100"
                   style={{ backgroundColor: service.color }}
                 />
                 
-                {/* Icon wrapper */}
+                {/* Circular Icon Container (Mockup Style) */}
                 <div
-                  className="mb-5 flex size-12 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-108 group-hover:rotate-3 shadow-inner"
+                  className="mb-6 flex size-14 items-center justify-center rounded-full transition-all duration-300 group-hover:scale-105 shadow-sm border border-transparent group-hover:border-gray-100"
                   style={{ backgroundColor: service.bg }}
                 >
-                  <Icon className="size-5.5" style={{ color: service.color }} aria-hidden />
+                  <Icon className="size-6 transition-transform duration-300 group-hover:rotate-3" style={{ color: service.color }} aria-hidden />
                 </div>
                 
-                <h3 className="mb-2 text-base font-bold leading-snug text-[#0D2137] transition-colors group-hover:text-black">
+                <h3 className="mb-2.5 text-lg font-bold leading-snug text-[#0D2137] transition-colors group-hover:text-black">
                   {service.name}
                 </h3>
                 
@@ -145,16 +161,18 @@ export function ServicesGrid() {
                   {service.description}
                 </p>
                 
-                <span
-                  className="mt-5 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider transition-all"
-                  style={{ color: service.color }}
-                >
-                  Get started
-                  <ArrowRight
-                    className="size-3.5 transition-transform group-hover:translate-x-1"
-                    aria-hidden
-                  />
-                </span>
+                <div className="mt-6">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="rounded-full border-gray-250 hover:bg-[#0D2137] hover:text-white transition-all text-xs font-bold text-[#0D2137] h-9 px-4 cursor-pointer"
+                  >
+                    <div>
+                      Get started
+                      <ArrowRight className="size-3 ml-1.5 transition-transform group-hover:translate-x-1" />
+                    </div>
+                  </Button>
+                </div>
               </Link>
             )
           })}
