@@ -14,6 +14,24 @@ export interface CarouselSlide {
 
 const DEFAULT_SLIDES: CarouselSlide[] = [
   {
+    src: "/images/pssf5.jpeg",
+    alt: "PSSF CEO addressing the Digital Systems Transformation launch",
+    caption: "PSSF Digital Systems Transformation",
+    tag: "Innovation",
+  },
+  {
+    src: "/images/pssf6.jpeg",
+    alt: "Senior PSSF official speaking at the Digital Systems Transformation event",
+    caption: "Transforming Pension Management through Smart Automation",
+    tag: "Digital Transformation",
+  },
+  {
+    src: "/images/pssf4.jpeg",
+    alt: "PSSF Board and officials at the Digital Systems Transformation launch",
+    caption: "PSSF Digital Systems Transformation Launch",
+    tag: "Governance",
+  },
+  {
     src: "/images/3rd_annual_meeting.jpeg",
     alt: "PSSF CEO addressing members at the 3rd Annual Members Meeting",
     caption: "3rd Annual Members Meeting",
@@ -21,9 +39,27 @@ const DEFAULT_SLIDES: CarouselSlide[] = [
   },
   {
     src: "/images/3rd_meeting.jpeg",
-    alt: "PSSF Board of Trustees and senior officials at the 3rd Annual Meeting",
+    alt: "PSSF Board of Trustees at the 3rd Annual Members Meeting",
     caption: "Board of Trustees & Senior Officials",
     tag: "Governance",
+  },
+  {
+    src: "/images/pssf2.jpg",
+    alt: "PSSF Member Self-Service Portal exclusive webinar",
+    caption: "Member Self-Service Portal — Exclusive Webinar",
+    tag: "Member Services",
+  },
+  {
+    src: "/images/pssf3.jpg",
+    alt: "PSSF Factsheet — 517,236 members, KES 322B assets under management",
+    caption: "517,236 Members · KES 322B Assets Under Management",
+    tag: "Key Stats",
+  },
+  {
+    src: "/images/pssf1.jpg",
+    alt: "PSSF Defined Contribution Scheme awareness campaign",
+    caption: "Defined Contribution Scheme — Your Pension Grows With You",
+    tag: "Awareness",
   },
 ]
 
