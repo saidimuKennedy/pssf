@@ -52,10 +52,12 @@ export async function sendEmail(options: EmailOptions): Promise<void> {
   const html = await render(React.createElement(Component, { variables: options.variables }))
 
   const resend = new Resend(process.env.RESEND_API_KEY)
+  const isDev = process.env.NODE_ENV !== "production"
+  const toAddress = isDev ? (process.env.RESEND_DEV_EMAIL ?? options.to) : options.to
   const { error } = await resend.emails.send({
     from: process.env.RESEND_FROM_EMAIL ?? "noreply@pssf.go.ke",
-    to: options.to,
-    subject,
+    to: toAddress,
+    subject: isDev && toAddress !== options.to ? `[DEV → ${options.to}] ${subject}` : subject,
     html,
   })
 

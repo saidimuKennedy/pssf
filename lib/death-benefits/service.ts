@@ -24,24 +24,26 @@ export async function validateDeceasedMember(input: DeceasedValidateInput) {
     where: { national_id: input.national_id },
   })
 
-  if (input.personal_number && member?.personal_number && member.personal_number !== input.personal_number) {
+  if (!member) return { matched: false as const }
+
+  if (input.personal_number && member.personal_number && member.personal_number !== input.personal_number) {
     return { matched: false as const }
   }
-  if (input.member_number && member?.member_number && member.member_number !== input.member_number) {
+  if (input.member_number && member.member_number && member.member_number !== input.member_number) {
     return { matched: false as const }
   }
 
   return {
     matched: true as const,
     member: {
-      id: member?.id ?? null,
-      full_name: kraResult.name ?? member?.full_name ?? "",
+      id: member.id,
+      full_name: kraResult.name ?? member.full_name ?? "",
       national_id: input.national_id,
       year_of_birth: input.year_of_birth,
-      personal_number: member?.personal_number ?? null,
-      member_number: member?.member_number ?? null,
-      employer_name: member?.employer_name ?? null,
-      kra_pin: kraResult.kra_pin ?? member?.kra_pin ?? null,
+      personal_number: member.personal_number ?? null,
+      member_number: member.member_number ?? null,
+      employer_name: member.employer_name ?? null,
+      kra_pin: kraResult.kra_pin ?? member.kra_pin ?? null,
     },
   }
 }
