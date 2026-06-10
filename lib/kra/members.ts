@@ -12,6 +12,7 @@ export interface KraMemberResult {
   kra_pin?: string
   national_id?: string
   error?: string
+  mismatch_type?: "dob"
 }
 
 export async function lookupById(
@@ -61,7 +62,7 @@ export async function lookupById(
 
   const returnedYob = String(body.yob)
   if (returnedYob !== yearOfBirth.trim()) {
-    return { success: false, error: "Identity details do not match our records. Please check your information." }
+    return { success: false, mismatch_type: "dob", error: "Date of birth does not match our records." }
   }
 
   return {

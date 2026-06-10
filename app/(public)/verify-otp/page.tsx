@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useActionState, useEffect, useRef, Suspense } from "react"
+import { useState, useActionState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,43 +10,23 @@ import { otpLoginAction } from "../login/actions"
 import { resendOtpAction } from "./actions"
 import { PssfLogo } from "@/components/pssf-logo"
 
-const OTP_TTL = 300 // 5 minutes
-
 function VerifyOtpContent() {
   const params = useSearchParams()
   const phone = params.get("phone") ?? ""
   const email = params.get("email") ?? ""
   const identifier = phone || email
 
-  const [secondsLeft, setSecondsLeft] = useState(OTP_TTL)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [code, setCode] = useState("")
 
   const [loginState, login, loginPending] = useActionState(otpLoginAction, null)
   const [resendState, resend, resendPending] = useActionState(resendOtpAction, null)
 
-  useEffect(() => {
-    intervalRef.current = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) {
-          clearInterval(intervalRef.current!)
-          return 0
-        }
-        return s - 1
-      })
-    }, 1000)
-    return () => clearInterval(intervalRef.current!)
-  }, [])
-
   const handleResend = () => {
-    setSecondsLeft(OTP_TTL)
     const fd = new FormData()
     if (phone) fd.append("phone", phone)
     if (email) fd.append("email", email)
     resend(fd)
   }
-
-  const mm = String(Math.floor(secondsLeft / 60)).padStart(2, "0")
-  const ss = String(secondsLeft % 60).padStart(2, "0")
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#F5F5F5] px-4">
@@ -63,32 +43,24 @@ function VerifyOtpContent() {
         <Card className="border-[#E5E7EB]">
           <CardHeader>
             <CardTitle className="text-[#0D2137]">Verification code</CardTitle>
-            <CardDescription>
-              {secondsLeft > 0 ? (
-                <>
-                  Code expires in{" "}
-                  <span className="font-mono text-[#0D2137]">{mm}:{ss}</span>
-                </>
-              ) : (
-                <span className="text-[#DC2626]">Code expired. Request a new one.</span>
-              )}
-            </CardDescription>
+            <CardDescription>Enter the code sent to {identifier}.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <form action={login} className="space-y-4">
               <input type="hidden" name="phone" value={phone} />
+              <input type="hidden" name="code" value={code} />
               <div className="space-y-1">
-                <Label htmlFor="code">6-digit code</Label>
+                <Label htmlFor="code-input">6-character code</Label>
                 <Input
-                  id="code"
-                  name="code"
+                  id="code-input"
                   type="text"
-                  inputMode="numeric"
                   maxLength={6}
-                  placeholder="000000"
+                  placeholder="ABC123"
                   required
-                  disabled={secondsLeft === 0}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
                   className="tracking-widest text-center text-lg"
+                  autoComplete="one-time-code"
                   autoFocus
                 />
               </div>
@@ -105,7 +77,7 @@ function VerifyOtpContent() {
 
               <Button
                 type="submit"
-                disabled={loginPending || secondsLeft === 0}
+                disabled={loginPending || code.length < 4}
                 className="w-full bg-[#0D2137] hover:bg-[#0D2137]/90 text-white"
               >
                 {loginPending ? "Verifying…" : "Verify"}
@@ -116,7 +88,7 @@ function VerifyOtpContent() {
               <button
                 type="button"
                 onClick={handleResend}
-                disabled={resendPending || secondsLeft > 240}
+                disabled={resendPending}
                 className="text-sm text-[#1A7A4A] hover:underline disabled:opacity-40 disabled:no-underline"
               >
                 {resendPending ? "Sending…" : "Resend code"}

@@ -7,15 +7,36 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { StatusBadge } from "@/components/ui/status-badge"
 import type { CaseStatus } from "@/lib/enums"
-import { 
-  Search, 
-  ArrowLeft, 
-  AlertTriangle, 
-  Info, 
-  Calendar, 
-  Loader2 
+import {
+  Search,
+  ArrowLeft,
+  AlertTriangle,
+  Info,
+  Calendar,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+const STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Draft",
+  SUBMITTED: "Submitted",
+  PENDING_EMPLOYER: "Pending Employer Approval",
+  EMPLOYER_APPROVED: "Employer Approved",
+  EMPLOYER_REJECTED: "Employer Rejected",
+  UNDER_REVIEW: "Under PSSF Review",
+  MORE_INFO_REQUIRED: "More Information Required",
+  UNDER_VERIFICATION: "Pending Verification",
+  AWAITING_TRUSTEE: "Awaiting Trustee",
+  APPROVED: "Approved",
+  PAYMENT_PROCESSING: "Payment Processing",
+  COMPLETED: "Completed",
+  REJECTED: "Rejected",
+  CLOSED: "Closed",
+}
+
+function formatStatus(raw: string): string {
+  return STATUS_LABELS[raw] ?? raw.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
 interface TrackResult {
   reference: string
@@ -198,10 +219,10 @@ export default function TrackPage() {
                       <div className="flex justify-between items-start gap-4">
                         <div className="min-w-0">
                           <p className={cn(
-                            "text-sm font-bold capitalize transition-colors",
+                            "text-sm font-bold transition-colors",
                             isLatest ? "text-[#0D2137]" : "text-gray-500 font-medium"
                           )}>
-                            {h.to_status.replace(/_/g, " ").toLowerCase()}
+                            {formatStatus(h.to_status)}
                           </p>
                           {isLatest && (
                             <p className="text-[10px] text-[#1A7A4A] font-semibold tracking-wide uppercase mt-0.5">

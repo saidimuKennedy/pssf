@@ -66,7 +66,7 @@ export default function MemberProfilePage() {
       </div>
       <div className="space-y-3 border-t pt-4">
         <div><Label>Mobile Number</Label><Input value={form.mobile_number} onChange={(e) => setForm({ ...form, mobile_number: e.target.value })} /></div>
-        {showOtp && <div><Label>OTP</Label><Input value={phoneOtp} onChange={(e) => setPhoneOtp(e.target.value)} maxLength={6} className="font-mono" /></div>}
+        {showOtp && <div><Label>Verification Code</Label><Input type="text" value={phoneOtp} onChange={(e) => setPhoneOtp(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} maxLength={6} placeholder="ABC123" autoComplete="one-time-code" className="font-mono tracking-widest text-center" /></div>}
         <div><Label>Email</Label><Input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
         <div><Label>Address</Label><Input value={form.postal_address} onChange={(e) => setForm({ ...form, postal_address: e.target.value })} /></div>
         <div className="grid grid-cols-2 gap-3">

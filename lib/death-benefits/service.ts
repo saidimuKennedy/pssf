@@ -3,7 +3,7 @@ import { lookupById } from "@/lib/kra/members"
 
 export interface DeceasedValidateInput {
   national_id: string
-  date_of_birth: string
+  year_of_birth: string
   personal_number?: string
   member_number?: string
   claimant_user_id: string
@@ -17,8 +17,7 @@ export async function validateDeceasedMember(input: DeceasedValidateInput) {
 
   if (!claimant?.phone) return { matched: false as const }
 
-  const year = input.date_of_birth.split("-")[0]
-  const kraResult = await lookupById(input.national_id, claimant.phone, year)
+  const kraResult = await lookupById(input.national_id, claimant.phone, input.year_of_birth)
   if (!kraResult.success) return { matched: false as const }
 
   const member = await prisma.member.findUnique({
@@ -38,7 +37,7 @@ export async function validateDeceasedMember(input: DeceasedValidateInput) {
       id: member?.id ?? null,
       full_name: kraResult.name ?? member?.full_name ?? "",
       national_id: input.national_id,
-      date_of_birth: input.date_of_birth,
+      year_of_birth: input.year_of_birth,
       personal_number: member?.personal_number ?? null,
       member_number: member?.member_number ?? null,
       employer_name: member?.employer_name ?? null,

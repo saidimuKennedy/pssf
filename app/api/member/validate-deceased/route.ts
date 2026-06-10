@@ -5,7 +5,7 @@ import { validateDeceasedMember } from "@/lib/death-benefits/service"
 
 const Schema = z.object({
   national_id: z.string().min(1),
-  date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  year_of_birth: z.string().regex(/^\d{4}$/),
   personal_number: z.string().optional(),
   member_number: z.string().optional(),
 })

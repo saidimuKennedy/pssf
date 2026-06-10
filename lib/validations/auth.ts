@@ -19,7 +19,7 @@ export const SignUpSchema = z.object({
     .string()
     .min(6, "National ID must be at least 6 characters")
     .max(20, "National ID is too long"),
-  date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
+  year_of_birth: z.string().regex(/^\d{4}$/, "Enter a valid 4-digit year"),
   phone: z.string().regex(/^\+?[1-9]\d{7,14}$/, "Enter a valid phone number"),
 })
 

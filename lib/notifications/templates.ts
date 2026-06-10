@@ -65,6 +65,11 @@ const PORTAL_TEMPLATES: Record<string, (vars: Variables) => string> = {
 }
 
 const WHATSAPP_TEMPLATES: Record<string, (vars: Variables) => string> = {
+  tpl_case_submitted_wa: (v) =>
+    sub(
+      "Your PSSF [case_type_label] (Ref: [case_reference]) has been submitted successfully. We will notify you when it is reviewed.",
+      v
+    ),
   tpl_employer_approved_wa: (v) =>
     sub(
       "Your PSSF [case_type_label] (Ref: [case_reference]) has been confirmed by your employer. It is now under PSSF review. We will notify you when there is an update.",
@@ -108,6 +113,8 @@ const WHATSAPP_TEMPLATES: Record<string, (vars: Variables) => string> = {
 }
 
 const EMAIL_SUBJECTS: Record<string, (vars: Variables) => string> = {
+  tpl_case_submitted_email: (v) =>
+    sub("Your [case_type_label] Has Been Submitted — Ref: [case_reference]", v),
   tpl_pending_employer_email: (v) =>
     sub("Action Required — [case_type_label] Confirmation for [member_name]", v),
   tpl_employer_approved_email: (v) =>
@@ -191,6 +198,13 @@ interface MetaTemplateEntry {
 }
 
 export const WA_META_TEMPLATES: Record<string, MetaTemplateEntry> = {
+  tpl_case_submitted_wa: {
+    name: "pssf_case_submitted",
+    language: "en_US",
+    components: (v) => [
+      { type: "body", parameters: [{ type: "text", text: v.case_type_label ?? "" }, { type: "text", text: v.case_reference ?? "" }] },
+    ],
+  },
   // UTILITY notifications — single body parameter = pre-resolved message text
   tpl_employer_approved_wa: {
     name: "pssf_employe_approved",

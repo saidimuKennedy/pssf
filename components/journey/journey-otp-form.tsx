@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-const OTP_EXPIRY_SECONDS = 300
 
 interface JourneyOtpFormProps {
   onVerified: () => void | Promise<void>
@@ -27,7 +26,7 @@ export function JourneyOtpForm({
   const [error, setError] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
   const [verifying, setVerifying] = useState(false)
-  const [countdown, setCountdown] = useState(0)
+  const [otpSent, setOtpSent] = useState(false)
 
   const requestOtp = useCallback(async () => {
     if (!phone) {
@@ -49,7 +48,7 @@ export function JourneyOtpForm({
           : "Could not send verification code. Please try again.")
         return
       }
-      setCountdown(body.expires_in ?? OTP_EXPIRY_SECONDS)
+      setOtpSent(true)
       setVerified(false)
     } finally {
       setSending(false)
@@ -69,16 +68,10 @@ export function JourneyOtpForm({
   }, [])
 
   useEffect(() => {
-    if (phone && countdown === 0 && !verified) {
+    if (phone && !otpSent && !verified) {
       requestOtp()
     }
-  }, [phone, countdown, verified, requestOtp])
-
-  useEffect(() => {
-    if (countdown <= 0) return
-    const t = setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000)
-    return () => clearInterval(t)
-  }, [countdown])
+  }, [phone, otpSent, verified, requestOtp])
 
   async function verifyAndSubmit() {
     setError(null)
@@ -87,7 +80,7 @@ export function JourneyOtpForm({
       return
     }
     if (otp.length !== 6) {
-      setError("Please enter the 6-digit code sent to your phone.")
+      setError("Please enter the 6-character code sent to your phone.")
       return
     }
 
@@ -143,27 +136,22 @@ export function JourneyOtpForm({
         <Input
           id="journey-otp"
           type="text"
-          inputMode="numeric"
           maxLength={6}
-          placeholder="000000"
+          placeholder="ABC123"
           className="text-center text-2xl tracking-widest font-mono"
           value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          onChange={(e) => setOtp(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
+          autoComplete="one-time-code"
           disabled={busy}
         />
       </div>
 
-      <div className="flex items-center justify-between text-sm text-gray-500">
-        {countdown > 0 ? (
-          <span>Resend available in {countdown}s</span>
-        ) : (
-          <span>Code expired or not sent</span>
-        )}
+      <div className="flex justify-end text-sm">
         <Button
           type="button"
           variant="link"
           className="h-auto p-0 text-[#1A7A4A]"
-          disabled={countdown > 0 || sending || !phone}
+          disabled={sending || !phone}
           onClick={requestOtp}
         >
           {sending ? "Sending…" : "Resend code"}

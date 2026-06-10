@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/auth"
 import { removeBeneficiary, updateBeneficiary } from "@/lib/beneficiaries/service"
-import { BeneficiarySchema } from "@/lib/validations/beneficiaries"
+import { PatchBeneficiarySchema } from "@/lib/validations/beneficiaries"
 import { AuthError } from "@/lib/state-machine/guards"
 
 export async function PATCH(
@@ -15,7 +15,7 @@ export async function PATCH(
 
   const { id, beneficiaryId } = await params
   const body = await req.json()
-  const parsed = BeneficiarySchema.partial().safeParse(body)
+  const parsed = PatchBeneficiarySchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", code: "VALIDATION_ERROR", details: parsed.error.flatten() },

@@ -22,7 +22,7 @@ export const authConfig = {
         const code = credentials?.code as string
         if (!phone || !code) return null
 
-        const user = await prisma.user.findFirst({ where: { phone } })
+        const user = await prisma.user.findFirst({ where: { phone, role: { in: [Role.MEMBER, Role.CLAIMANT] } } })
         if (!user || !user.is_active) return null
 
         const result = await validateOTP(phone, code)

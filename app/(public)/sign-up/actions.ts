@@ -5,47 +5,67 @@ import { SignUpSchema } from "@/lib/validations/auth"
 import { lookupById } from "@/lib/kra/members"
 import bcrypt from "bcryptjs"
 import { generateOTP, validateOTP } from "@/lib/kra/otp"
-import { Role } from "@prisma/client"
+import { NotificationChannel, Role } from "@prisma/client"
+
+export type MatchStatus =
+  | "MATCHED"
+  | "NOT_FOUND"
+  | "DOB_MISMATCH"
+  | "NO_CONTACT"
+  | "ALREADY_REGISTERED"
 
 export type ValidateMemberResult =
   | null
-  | { success?: boolean; member?: Record<string, string>; error?: { fieldErrors?: Record<string, string[]> } | string }
+  | {
+      success?: boolean
+      matchStatus?: MatchStatus
+      member?: Record<string, string>
+      error?: { fieldErrors?: Record<string, string[]> } | string
+    }
 
-export type SendOtpResult =
-  | null
-  | { success?: boolean; error?: string }
+export type SendOtpResult = null | { success?: boolean; error?: string }
 
-export type ActivateResult =
-  | null
-  | { success?: boolean; registered?: boolean; error?: string }
+export type ActivateResult = null | { success?: boolean; registered?: boolean; error?: string }
 
 export async function validateMemberAction(prevState: unknown, formData: FormData) {
   const parsed = SignUpSchema.safeParse({
     national_id: formData.get("national_id"),
-    date_of_birth: formData.get("date_of_birth"),
+    year_of_birth: formData.get("year_of_birth"),
     phone: formData.get("phone"),
   })
   if (!parsed.success) {
     return { error: parsed.error.flatten() }
   }
 
-  const { national_id, date_of_birth, phone } = parsed.data
-  const year = date_of_birth.split("-")[0]
+  const { national_id, year_of_birth, phone } = parsed.data
 
-  const kraResult = await lookupById(national_id, phone, year)
+  const kraResult = await lookupById(national_id, phone, year_of_birth)
+
   if (!kraResult.success) {
+    if (kraResult.mismatch_type === "dob") {
+      return {
+        matchStatus: "DOB_MISMATCH" as MatchStatus,
+        error: {
+          fieldErrors: {
+            year_of_birth: ["Year of birth does not match the records for this ID. Please check and try again."],
+          },
+        },
+      }
+    }
     return {
+      matchStatus: "NOT_FOUND" as MatchStatus,
       error: {
         fieldErrors: {
-          national_id: [kraResult.error ?? "We could not verify your identity. Check your details and try again."],
+          national_id: ["We could not find a record for this ID. If you believe this is an error, contact PSSF."],
         },
       },
     }
   }
 
-  const memberRecord = await prisma.member.findUnique({ where: { national_id } })
+  const memberRecord = await prisma.member.findFirst({ where: { national_id } })
   if (!memberRecord) {
     return {
+      matchStatus: "NOT_FOUND" as MatchStatus,
       error: {
         fieldErrors: {
           national_id: ["You are not registered as a PSSF member. Contact PSSF for assistance."],
@@ -54,10 +74,12 @@ export async function validateMemberAction(prevState: unknown, formData: FormDat
     }
   }
 
+  // Account already fully activated
   if (memberRecord.user_id) {
     const linked = await prisma.user.findUnique({ where: { id: memberRecord.user_id } })
     if (linked?.phone) {
       return {
+        matchStatus: "ALREADY_REGISTERED" as MatchStatus,
         error: {
           fieldErrors: {
             national_id: ["An account already exists for this National ID. Sign in instead."],
@@ -67,13 +89,29 @@ export async function validateMemberAction(prevState: unknown, formData: FormDat
     }
   }
 
+  // Record found but no contact details on file
+  const hasContact = !!(memberRecord.mobile_number || memberRecord.email)
+  if (!hasContact && !phone) {
+    return {
+      matchStatus: "NO_CONTACT" as MatchStatus,
+      error: {
+        fieldErrors: {
+          national_id: [
+            "Your PSSF record has no contact details on file. Please visit a PSSF office to have your contact information updated before activating online access.",
+          ],
+        },
+      },
+    }
+  }
+
   return {
     success: true,
+    matchStatus: "MATCHED" as MatchStatus,
     member: {
       id: memberRecord.id,
       full_name: kraResult.name ?? memberRecord.full_name,
       national_id: memberRecord.national_id,
-      date_of_birth: date_of_birth,
+      year_of_birth: year_of_birth,
       kra_pin: kraResult.kra_pin ?? memberRecord.kra_pin ?? "",
       member_number: memberRecord.member_number ?? "",
       personal_number: memberRecord.personal_number ?? "",
@@ -111,6 +149,7 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
   const town = (formData.get("town") as string) || null
   const access_method = (formData.get("access_method") as string) || "otp"
   const password = (formData.get("password") as string) || null
+  const communication_pref = (formData.get("communication_pref") as string) || "PORTAL"
 
   if (!phone || !code || !national_id || !full_name) {
     return { error: "Missing required fields." }
@@ -124,15 +163,20 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
 
   const result = await validateOTP(phone, code)
   if (!result.success) {
-      return { error: "Invalid or expired OTP." }
+    return { error: "Invalid or expired OTP." }
   }
 
   const password_hash =
-    access_method === "password" && password
-      ? bcrypt.hashSync(password, 12)
-      : undefined
+    access_method === "password" && password ? bcrypt.hashSync(password, 12) : undefined
 
-  const member = await prisma.member.findUnique({ where: { national_id } })
+  const commPref =
+    communication_pref === "WHATSAPP"
+      ? NotificationChannel.WHATSAPP
+      : communication_pref === "EMAIL"
+        ? NotificationChannel.EMAIL
+        : NotificationChannel.PORTAL
+
+  const member = await prisma.member.findFirst({ where: { national_id } })
 
   try {
     if (member?.user_id) {
@@ -168,8 +212,12 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
     if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002") {
       const target = (e as { meta?: { target?: string[] | string } }).meta?.target
       const field = Array.isArray(target) ? target.join(", ") : String(target ?? "")
-      if (field.includes("email")) return { error: "This email is already linked to another account. Use a different email." }
-      if (field.includes("phone")) return { error: "This phone number is already linked to another account. Use a different number." }
+      if (field.includes("email"))
+        return { error: "This email is already linked to another account. Use a different email." }
+      if (field.includes("phone"))
+        return {
+          error: "This phone number is already linked to another account. Use a different number.",
+        }
       return { error: "These details are already linked to another account." }
     }
     throw e
@@ -185,6 +233,7 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
         postal_address: postal_address || member.postal_address || undefined,
         postal_code: postal_code || member.postal_code || undefined,
         town: town || member.town || undefined,
+        communication_pref: commPref,
       },
     })
   }

@@ -12,10 +12,12 @@ import PaymentProcessingEmail from "@/emails/payment-processing"
 import CaseCompletedEmail from "@/emails/case-completed"
 import TaskOverdueEmail from "@/emails/task-overdue"
 import WelcomeEmail from "@/emails/welcome"
+import CaseSubmittedEmail from "@/emails/case-submitted"
 
 type EmailComponent = React.ComponentType<{ variables: Record<string, string> }>
 
 const EMAIL_COMPONENTS: Record<string, EmailComponent> = {
+  tpl_case_submitted_email: CaseSubmittedEmail,
   tpl_pending_employer_email: PendingEmployerEmail,
   tpl_employer_approved_email: EmployerApprovedEmail,
   tpl_employer_rejected_email: EmployerRejectedEmail,

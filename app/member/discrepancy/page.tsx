@@ -70,6 +70,21 @@ function DiscrepancyForm() {
       if (!id) { setError("Could not create report."); return }
       if (!docUploaded) { setError("Supporting document is required."); return }
 
+      // Always sync the latest field values before submitting — startCase() may have
+      // been called earlier (via the upload button) with different or empty values.
+      await fetch(`/api/cases/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formData: {
+            field_name: field,
+            field_category: deriveFieldCategory(field),
+            correct_information: correct,
+            explanation,
+          },
+        }),
+      })
+
       const submitRes = await fetch(`/api/cases/${id}/submit`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

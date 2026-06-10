@@ -17,7 +17,7 @@ const baseBeneficiaryFields = {
   relationship_other: z.string().optional(),
   date_of_birth: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date of birth must be in YYYY-MM-DD format"),
+    .regex(/^\d{4}$/, "Enter a valid 4-digit year"),
   mobile_number: kenyanPhone,
   allocation_percent: z
     .number()
@@ -83,6 +83,14 @@ export const WitnessSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
 })
+
+export const PatchBeneficiarySchema = z
+  .object({
+    ...baseBeneficiaryFields,
+    national_id: z.string().optional(),
+    birth_cert_number: z.string().optional(),
+  })
+  .partial()
 
 export type BeneficiaryInput = z.infer<typeof BeneficiarySchema>
 export type GuardianInput = z.infer<typeof GuardianSchema>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { SignaturePad } from "@/components/ui/signature-pad"
 
 const STEPS = ["Identity", "Details", "Documents", "Declaration", "Preview", "Confirm", "Done"]
 
@@ -16,6 +17,7 @@ export default function EnrolmentStep4Page() {
   const caseId = searchParams.get("case_id")
 
   const [accepted, setAccepted] = useState(false)
+  const [signatureData, setSignatureData] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -46,7 +48,11 @@ export default function EnrolmentStep4Page() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          formData: { ...existing, declaration_accepted: true },
+          formData: {
+            ...existing,
+            declaration_accepted: true,
+            ...(signatureData ? { signature_data: signatureData } : {}),
+          },
         }),
       })
 
@@ -101,6 +107,13 @@ export default function EnrolmentStep4Page() {
         <Label htmlFor="declaration" className="text-sm leading-relaxed cursor-pointer">
           I have read, understood, and accept the statutory declaration above.
         </Label>
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-sm font-medium text-gray-700">
+          Drawn signature <span className="text-gray-400 font-normal">(optional)</span>
+        </Label>
+        <SignaturePad onChange={setSignatureData} />
       </div>
 
       {error && (

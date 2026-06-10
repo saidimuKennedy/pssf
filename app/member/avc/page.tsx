@@ -18,9 +18,7 @@ import { cn } from "@/lib/utils"
 
 const Schema = z.object({
   national_id: z.string().min(1, "National ID is required"),
-  date_of_birth: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date of birth must be in YYYY-MM-DD format"),
+  year_of_birth: z.string().regex(/^\d{4}$/, "Enter a valid 4-digit year"),
 })
 type FormValues = z.infer<typeof Schema>
 
@@ -50,7 +48,7 @@ export default function AVCStep1Page() {
     setApiError(null)
     setLoading(true)
     try {
-      const validateRes = await fetch("/api/member/validate", {
+      const validateRes = await fetch("/api/member/validate?allow_new=true", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -59,7 +57,7 @@ export default function AVCStep1Page() {
 
       if (!validateRes.ok || !validateData.matched) {
         setApiError(
-          "We could not verify your identity. Please check your National ID and date of birth."
+          "We could not verify your identity. Please check your National ID and year of birth."
         )
         return
       }
@@ -139,10 +137,17 @@ export default function AVCStep1Page() {
             )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="date_of_birth">Date of Birth</Label>
-            <Input id="date_of_birth" type="date" {...register("date_of_birth")} />
-            {errors.date_of_birth && (
-              <p className="text-xs text-red-600">{errors.date_of_birth.message}</p>
+            <Label htmlFor="year_of_birth">Year of Birth</Label>
+            <Input
+              id="year_of_birth"
+              type="number"
+              min="1900"
+              max={new Date().getFullYear()}
+              placeholder="e.g. 1983"
+              {...register("year_of_birth")}
+            />
+            {errors.year_of_birth && (
+              <p className="text-xs text-red-600">{errors.year_of_birth.message}</p>
             )}
           </div>
           <Button

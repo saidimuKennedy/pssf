@@ -2,10 +2,7 @@ import { z } from "zod"
 
 export const ValidateMemberSchema = z.object({
   national_id: z.string().min(1, "National ID is required"),
-  date_of_birth: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date of birth must be in YYYY-MM-DD format"),
-  phone: z.string().regex(/^\+?[1-9]\d{7,14}$/, "Enter a valid phone number"),
+  year_of_birth: z.string().regex(/^\d{4}$/, "Enter a valid 4-digit year"),
 })
 
 const kenyanPhone = z

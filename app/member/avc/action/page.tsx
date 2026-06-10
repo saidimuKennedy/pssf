@@ -41,7 +41,7 @@ export default function AVCActionPage() {
     fetch(`/api/cases/${caseId}`)
       .then((r) => r.json())
       .then((data) => {
-        const fd = data.form_data as Record<string, unknown>
+        const fd = (data.form_data as Record<string, unknown>) ?? {}
         setAvcAction(fd.avc_action as AvcAction)
         if (fd.avc_method) setAvcMethod(fd.avc_method as AvcMethod)
         if (fd.new_amount) setNewAmount(String(fd.new_amount))

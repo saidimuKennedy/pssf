@@ -42,10 +42,10 @@ export default function AVCSubmittedPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <Button asChild variant="outline" className="flex-1">
+        <Button asChild variant="outline" size="lg" className="flex-1">
           <Link href="/member/requests">Track My Request</Link>
         </Button>
-        <Button asChild className="flex-1 bg-[#16A34A] hover:bg-[#145f3a] text-white">
+        <Button asChild size="lg" className="flex-1 bg-[#16A34A] hover:bg-[#145f3a] text-white">
           <Link href="/member/dashboard">Back to Dashboard</Link>
         </Button>
       </div>

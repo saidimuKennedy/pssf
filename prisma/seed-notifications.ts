@@ -11,6 +11,8 @@ const RULES = [
   // CASE_SUBMITTED
   { id: "00000000-0000-0000-0000-000000000001", trigger_event: "CASE_SUBMITTED", recipient_type: "MEMBER", channel: NotificationChannel.PORTAL, template_ref: "tpl_case_submitted_portal_member" },
   { id: "00000000-0000-0000-0000-000000000002", trigger_event: "CASE_SUBMITTED", recipient_type: "PSSF_STAFF", channel: NotificationChannel.PORTAL, template_ref: "tpl_case_submitted_portal_staff" },
+  { id: "00000000-0000-0000-0000-000000000029", trigger_event: "CASE_SUBMITTED", recipient_type: "MEMBER", channel: NotificationChannel.EMAIL, template_ref: "tpl_case_submitted_email" },
+  { id: "00000000-0000-0000-0000-000000000030", trigger_event: "CASE_SUBMITTED", recipient_type: "MEMBER", channel: NotificationChannel.WHATSAPP, template_ref: "tpl_case_submitted_wa" },
   // PENDING_EMPLOYER
   { id: "00000000-0000-0000-0000-000000000003", trigger_event: "PENDING_EMPLOYER", recipient_type: "EMPLOYER", channel: NotificationChannel.PORTAL, template_ref: "tpl_pending_employer_portal" },
   { id: "00000000-0000-0000-0000-000000000004", trigger_event: "PENDING_EMPLOYER", recipient_type: "EMPLOYER", channel: NotificationChannel.EMAIL, template_ref: "tpl_pending_employer_email" },

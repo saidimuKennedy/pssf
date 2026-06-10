@@ -80,7 +80,7 @@ export default function EnrolmentStep5Page() {
           <div className="px-4">
             <Row label="Full Name" value={str("full_name")} />
             <Row label="National ID" value={str("national_id")} />
-            <Row label="Date of Birth" value={str("date_of_birth")} />
+            <Row label="Year of Birth" value={str("year_of_birth")} />
             <Row label="KRA PIN" value={str("kra_pin")} />
           </div>
 

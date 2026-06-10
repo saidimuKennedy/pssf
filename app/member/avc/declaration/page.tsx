@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { SignaturePad } from "@/components/ui/signature-pad"
 import { AVC_STEPS } from "@/lib/avc/journey"
 
 
@@ -18,6 +19,7 @@ export default function AVCDeclarationPage() {
 
   const [accepted, setAccepted] = useState(false)
   const [otp, setOtp] = useState("")
+  const [signatureData, setSignatureData] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -36,8 +38,8 @@ export default function AVCDeclarationPage() {
       setError("You must accept the statutory declaration to proceed.")
       return
     }
-    if (otp.length !== 6 || !/^\d{6}$/.test(otp)) {
-      setError("Please enter the 6-digit verification code sent to your phone.")
+    if (otp.length !== 6) {
+      setError("Please enter the 6-character verification code sent to your phone.")
       return
     }
 
@@ -57,6 +59,7 @@ export default function AVCDeclarationPage() {
             ...existing,
             declaration_accepted: true,
             declaration_otp_verified: true,
+            ...(signatureData ? { signature_data: signatureData } : {}),
           },
         }),
       })
@@ -111,17 +114,24 @@ export default function AVCDeclarationPage() {
 
 
 
+      <div className="space-y-1">
+        <Label className="text-sm font-medium text-gray-700">
+          Drawn signature <span className="text-gray-400 font-normal">(optional)</span>
+        </Label>
+        <SignaturePad onChange={setSignatureData} />
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="otp">Verification Code</Label>
         <Input
           id="otp"
           type="text"
-          inputMode="numeric"
           maxLength={6}
-          placeholder="000000"
+          placeholder="ABC123"
           className="text-center text-xl tracking-widest font-mono"
           value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          autoComplete="one-time-code"
+          onChange={(e) => setOtp(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
         />
       </div>
 

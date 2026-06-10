@@ -14,9 +14,9 @@ import { AlertTriangle } from "lucide-react"
 
 const Schema = z.object({
   national_id: z.string().min(1, "National ID is required"),
-  date_of_birth: z
+  year_of_birth: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date of birth must be in YYYY-MM-DD format"),
+    .regex(/^\d{4}$/, "Enter a valid 4-digit year"),
 })
 type FormValues = z.infer<typeof Schema>
 
@@ -38,7 +38,7 @@ export default function EnrolmentStep1Page() {
     setLoading(true)
     try {
       // 1. Validate identity
-      const validateRes = await fetch("/api/member/validate", {
+      const validateRes = await fetch("/api/member/validate?allow_new=true", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(values),
@@ -63,7 +63,7 @@ export default function EnrolmentStep1Page() {
           type: "MEMBER_ENROLMENT",
           formData: {
             national_id: values.national_id,
-            date_of_birth: values.date_of_birth,
+            year_of_birth: values.year_of_birth,
           },
         }),
       })
@@ -87,7 +87,7 @@ export default function EnrolmentStep1Page() {
       <div>
         <h1 className="text-xl font-bold text-[#0D2137]">Verify Your Identity</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Enter your PSSF-registered National ID and date of birth to begin enrolment.
+          Enter your PSSF-registered National ID and year of birth to begin enrolment.
         </p>
       </div>
 
@@ -112,14 +112,17 @@ export default function EnrolmentStep1Page() {
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="date_of_birth">Date of Birth</Label>
+          <Label htmlFor="year_of_birth">Year of Birth</Label>
           <Input
-            id="date_of_birth"
-            type="date"
-            {...register("date_of_birth")}
+            id="year_of_birth"
+            type="number"
+            min="1900"
+            max={new Date().getFullYear()}
+            placeholder="e.g. 1983"
+            {...register("year_of_birth")}
           />
-          {errors.date_of_birth && (
-            <p className="text-xs text-red-600">{errors.date_of_birth.message}</p>
+          {errors.year_of_birth && (
+            <p className="text-xs text-red-600">{errors.year_of_birth.message}</p>
           )}
         </div>
 

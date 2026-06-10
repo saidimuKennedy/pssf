@@ -34,7 +34,7 @@ const STEPS = ["Identity", "Details", "Documents", "Declaration", "Preview", "Co
 interface Prefill {
   full_name: string
   national_id: string
-  date_of_birth: string
+  year_of_birth: string
   member_number: string | null
   personal_number: string | null
   employer_name: string | null
@@ -100,7 +100,7 @@ export default function EnrolmentStep2Page() {
     try {
       const formData = {
         national_id: prefill?.national_id ?? "",
-        date_of_birth: prefill?.date_of_birth ?? "",
+        year_of_birth: prefill?.year_of_birth ?? "",
         full_name: prefill?.full_name ?? "",
         mobile_number: values.mobile_number,
         email: values.email || undefined,
@@ -152,7 +152,7 @@ export default function EnrolmentStep2Page() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <LockedField label="Full Name" value={prefill?.full_name} />
             <LockedField label="National ID" value={prefill?.national_id} />
-            <LockedField label="Date of Birth" value={prefill?.date_of_birth} />
+            <LockedField label="Year of Birth" value={prefill?.year_of_birth} />
             <LockedField label="Member Number" value={prefill?.member_number} />
             <LockedField label="Personal Number" value={prefill?.personal_number} />
             <LockedField label="Employer" value={prefill?.employer_name} />

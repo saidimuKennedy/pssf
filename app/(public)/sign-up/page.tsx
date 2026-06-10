@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { validateMemberAction, sendSignUpOtpAction, activateAccountAction } from "./actions"
 import { PssfLogo } from "@/components/pssf-logo"
 import Link from "next/link"
-import { CheckCircle2, Lock } from "lucide-react"
+import { CheckCircle2, Lock, AlertTriangle } from "lucide-react"
 
 type Step = "validate" | "review" | "access" | "otp" | "activated"
 
@@ -32,6 +33,7 @@ export default function SignUpPage() {
   const [postalCode, setPostalCode] = useState("")
   const [town, setTown] = useState("")
   const [accessMethod, setAccessMethod] = useState<"otp" | "password">("otp")
+  const [commPref, setCommPref] = useState<"PORTAL" | "WHATSAPP" | "EMAIL">("PORTAL")
   const [password, setPassword] = useState("")
 
   const [, startTransition] = useTransition()
@@ -75,6 +77,17 @@ export default function SignUpPage() {
 
   const currentIdx = STEPS.findIndex((s) => s.key === step)
 
+  // Extract a flat error message from the validate state
+  function getValidateError(): string | null {
+    if (!validateState?.error) return null
+    const err = validateState.error
+    if (typeof err === "string") return err
+    const fieldErrors = (err as { fieldErrors?: Record<string, string[]> }).fieldErrors ?? {}
+    return Object.values(fieldErrors).flat()[0] ?? "Validation failed."
+  }
+
+  const matchStatus = validateState?.matchStatus
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#F5F5F5] px-4 py-12">
       <div className="w-full max-w-lg space-y-6">
@@ -86,6 +99,7 @@ export default function SignUpPage() {
           </p>
         </div>
 
+        {/* Step indicator */}
         <div className="flex items-center justify-between px-2 overflow-x-auto">
           {STEPS.map((s, idx) => {
             const done = idx < currentIdx
@@ -98,30 +112,36 @@ export default function SignUpPage() {
                       done
                         ? "bg-[#1A7A4A] text-white"
                         : active
-                        ? "bg-[#0D2137] text-white"
-                        : "bg-white border-2 border-[#E5E7EB] text-[#6B7280]"
+                          ? "bg-[#0D2137] text-white"
+                          : "bg-white border-2 border-[#E5E7EB] text-[#6B7280]"
                     }`}
                   >
                     {done ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
                   </div>
-                  <span className={`text-xs ${active ? "text-[#0D2137] font-medium" : "text-[#6B7280]"}`}>
+                  <span
+                    className={`text-xs ${active ? "text-[#0D2137] font-medium" : "text-[#6B7280]"}`}
+                  >
                     {s.label}
                   </span>
                 </div>
                 {idx < STEPS.length - 1 && (
-                  <div className={`h-px w-8 sm:w-12 mx-1 sm:mx-2 mb-5 transition-colors ${idx < currentIdx ? "bg-[#1A7A4A]" : "bg-[#E5E7EB]"}`} />
+                  <div
+                    className={`h-px w-8 sm:w-12 mx-1 sm:mx-2 mb-5 transition-colors ${idx < currentIdx ? "bg-[#1A7A4A]" : "bg-[#E5E7EB]"}`}
+                  />
                 )}
               </div>
             )
           })}
         </div>
 
+        {/* Step 1: Validate */}
         {step === "validate" && (
           <Card className="border-[#E5E7EB]">
             <CardHeader>
               <CardTitle className="text-[#0D2137]">Verify your identity</CardTitle>
               <CardDescription>
-                Enter your National ID, date of birth, and phone number exactly as they appear on your records.
+                Enter your National ID, year of birth, and phone number exactly as they appear on
+                your records.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -131,20 +151,69 @@ export default function SignUpPage() {
                   <Input id="national_id" name="national_id" placeholder="e.g. 12345678" required />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="date_of_birth">Date of birth</Label>
-                  <Input id="date_of_birth" name="date_of_birth" type="date" required />
+                  <Label htmlFor="year_of_birth">Year of birth</Label>
+                  <Input
+                    id="year_of_birth"
+                    name="year_of_birth"
+                    type="number"
+                    min="1900"
+                    max={new Date().getFullYear()}
+                    placeholder="e.g. 1983"
+                    required
+                  />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="phone_validate">Phone number</Label>
-                  <Input id="phone_validate" name="phone" type="tel" placeholder="+254700000000" required />
+                  <Input
+                    id="phone_validate"
+                    name="phone"
+                    type="tel"
+                    placeholder="+254700000000"
+                    required
+                  />
                 </div>
-                {validateState?.error != null && (() => {
-                  const err = validateState.error
-                  const msg = typeof err === "string"
-                    ? err
-                    : Object.values((err as { fieldErrors?: Record<string, string[]> }).fieldErrors ?? {}).flat()[0] ?? "Validation failed."
-                  return <p className="text-sm text-[#DC2626]">{msg}</p>
-                })()}
+
+                {/* Outcome-specific error messages */}
+                {matchStatus === "DOB_MISMATCH" && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      The year of birth you entered does not match our records for this ID. Please
+                      check and try again, or{" "}
+                      <Link href="/member/discrepancy" className="underline font-medium">
+                        report a discrepancy
+                      </Link>
+                      .
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {matchStatus === "NOT_FOUND" && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{getValidateError()}</AlertDescription>
+                  </Alert>
+                )}
+                {matchStatus === "ALREADY_REGISTERED" && (
+                  <Alert>
+                    <AlertDescription>
+                      An account already exists for this National ID.{" "}
+                      <Link href="/login" className="underline font-medium text-[#1A7A4A]">
+                        Sign in instead
+                      </Link>
+                      .
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {matchStatus === "NO_CONTACT" && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{getValidateError()}</AlertDescription>
+                  </Alert>
+                )}
+                {!matchStatus && getValidateError() && (
+                  <p className="text-sm text-[#DC2626]">{getValidateError()}</p>
+                )}
+
                 <Button
                   type="submit"
                   disabled={validatePending}
@@ -157,12 +226,14 @@ export default function SignUpPage() {
           </Card>
         )}
 
+        {/* Step 2: Review */}
         {step === "review" && memberData && (
           <Card className="border-[#E5E7EB]">
             <CardHeader>
               <CardTitle className="text-[#0D2137]">Review your details</CardTitle>
               <CardDescription>
-                Locked fields cannot be changed here — open a discrepancy report if something is wrong.
+                Locked fields come from verified records. If something is wrong, report a
+                discrepancy before continuing.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -170,7 +241,7 @@ export default function SignUpPage() {
                 {[
                   { label: "Full name", value: memberData.full_name, locked: true },
                   { label: "National ID", value: memberData.national_id, locked: true },
-                  { label: "Date of birth", value: memberData.date_of_birth, locked: true },
+                  { label: "Year of birth", value: memberData.year_of_birth, locked: true },
                   { label: "Employer", value: memberData.employer_name, locked: true },
                   { label: "Member number", value: memberData.member_number, locked: true },
                 ].map(({ label, value, locked }) => (
@@ -179,12 +250,28 @@ export default function SignUpPage() {
                       <Label className="text-xs text-[#6B7280]">{label}</Label>
                       {locked && <Lock className="w-3 h-3 text-[#6B7280]" />}
                     </div>
-                    <div className={`px-3 py-2 rounded-md text-sm border ${locked ? "bg-[#F5F5F5] border-[#E5E7EB] text-[#6B7280]" : "bg-white border-[#E5E7EB]"}`}>
+                    <div
+                      className={`px-3 py-2 rounded-md text-sm border ${locked ? "bg-[#F5F5F5] border-[#E5E7EB] text-[#6B7280]" : "bg-white border-[#E5E7EB]"}`}
+                    >
                       {value || "—"}
                     </div>
                   </div>
                 ))}
               </div>
+
+              {/* Discrepancy link — Fix 4 */}
+              <Alert className="border-amber-200 bg-amber-50">
+                <AlertDescription className="text-amber-800 text-xs">
+                  Something wrong with the locked details above?{" "}
+                  <Link
+                    href="/member/discrepancy"
+                    className="underline font-semibold hover:text-amber-900"
+                  >
+                    Report a discrepancy
+                  </Link>{" "}
+                  and PSSF will correct it before you proceed.
+                </AlertDescription>
+              </Alert>
 
               <Separator />
 
@@ -264,39 +351,43 @@ export default function SignUpPage() {
           </Card>
         )}
 
+        {/* Step 3: Set access — Fix 6 adds WhatsApp option */}
         {step === "access" && memberData && (
           <Card className="border-[#E5E7EB]">
             <CardHeader>
               <CardTitle className="text-[#0D2137]">Set up access</CardTitle>
               <CardDescription>
-                Choose how you would like to sign in to your account.
+                Choose how you would like to sign in and receive notifications.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <RadioGroup
-                value={accessMethod}
-                onValueChange={(v) => setAccessMethod(v as "otp" | "password")}
-                className="space-y-3"
-              >
-                <div className="flex items-start gap-3 rounded-lg border p-3">
-                  <RadioGroupItem value="otp" id="access-otp" className="mt-0.5" />
-                  <Label htmlFor="access-otp" className="cursor-pointer space-y-0.5">
-                    <span className="font-medium">OTP only</span>
-                    <p className="text-xs text-[#6B7280] font-normal">
-                      Sign in with a one-time code sent to your mobile each time.
-                    </p>
-                  </Label>
-                </div>
-                <div className="flex items-start gap-3 rounded-lg border p-3">
-                  <RadioGroupItem value="password" id="access-password" className="mt-0.5" />
-                  <Label htmlFor="access-password" className="cursor-pointer space-y-0.5">
-                    <span className="font-medium">Password + OTP</span>
-                    <p className="text-xs text-[#6B7280] font-normal">
-                      Set a password for faster sign-in, confirmed with OTP.
-                    </p>
-                  </Label>
-                </div>
-              </RadioGroup>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-[#0D2137]">Sign-in method</p>
+                <RadioGroup
+                  value={accessMethod}
+                  onValueChange={(v) => setAccessMethod(v as "otp" | "password")}
+                  className="space-y-3"
+                >
+                  <div className="flex items-start gap-3 rounded-lg border p-3">
+                    <RadioGroupItem value="otp" id="access-otp" className="mt-0.5" />
+                    <Label htmlFor="access-otp" className="cursor-pointer space-y-0.5">
+                      <span className="font-medium">OTP only</span>
+                      <p className="text-xs text-[#6B7280] font-normal">
+                        Sign in with a one-time code sent to your mobile each time.
+                      </p>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-3 rounded-lg border p-3">
+                    <RadioGroupItem value="password" id="access-password" className="mt-0.5" />
+                    <Label htmlFor="access-password" className="cursor-pointer space-y-0.5">
+                      <span className="font-medium">Password + OTP</span>
+                      <p className="text-xs text-[#6B7280] font-normal">
+                        Set a password for faster sign-in, confirmed with OTP.
+                      </p>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
 
               {accessMethod === "password" && (
                 <div className="space-y-1">
@@ -311,6 +402,45 @@ export default function SignUpPage() {
                   />
                 </div>
               )}
+
+              <Separator />
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-[#0D2137]">Notification preference</p>
+                <RadioGroup
+                  value={commPref}
+                  onValueChange={(v) => setCommPref(v as typeof commPref)}
+                  className="space-y-3"
+                >
+                  <div className="flex items-start gap-3 rounded-lg border p-3">
+                    <RadioGroupItem value="PORTAL" id="pref-portal" className="mt-0.5" />
+                    <Label htmlFor="pref-portal" className="cursor-pointer space-y-0.5">
+                      <span className="font-medium">Portal only</span>
+                      <p className="text-xs text-[#6B7280] font-normal">
+                        Receive notifications inside the PSSF portal.
+                      </p>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-3 rounded-lg border p-3">
+                    <RadioGroupItem value="WHATSAPP" id="pref-whatsapp" className="mt-0.5" />
+                    <Label htmlFor="pref-whatsapp" className="cursor-pointer space-y-0.5">
+                      <span className="font-medium">WhatsApp</span>
+                      <p className="text-xs text-[#6B7280] font-normal">
+                        Receive case updates via WhatsApp on your mobile number.
+                      </p>
+                    </Label>
+                  </div>
+                  <div className="flex items-start gap-3 rounded-lg border p-3">
+                    <RadioGroupItem value="EMAIL" id="pref-email" className="mt-0.5" />
+                    <Label htmlFor="pref-email" className="cursor-pointer space-y-0.5">
+                      <span className="font-medium">Email</span>
+                      <p className="text-xs text-[#6B7280] font-normal">
+                        Receive case updates via email.
+                      </p>
+                    </Label>
+                  </div>
+                </RadioGroup>
+              </div>
 
               {otpSendState?.error && (
                 <p className="text-sm text-[#DC2626]">{otpSendState.error}</p>
@@ -345,6 +475,7 @@ export default function SignUpPage() {
           </Card>
         )}
 
+        {/* Step 4: OTP verify */}
         {step === "otp" && memberData && (
           <Card className="border-[#E5E7EB]">
             <CardHeader>
@@ -364,6 +495,7 @@ export default function SignUpPage() {
                 <input type="hidden" name="postal_code" value={postalCode} />
                 <input type="hidden" name="town" value={town} />
                 <input type="hidden" name="access_method" value={accessMethod} />
+                <input type="hidden" name="communication_pref" value={commPref} />
                 {accessMethod === "password" && (
                   <input type="hidden" name="password" value={password} />
                 )}
@@ -379,7 +511,9 @@ export default function SignUpPage() {
                     required
                     autoFocus
                     className="tracking-widest text-center text-lg uppercase"
-                    onChange={(e) => { e.target.value = e.target.value.toUpperCase() }}
+                    onChange={(e) => {
+                      e.target.value = e.target.value.toUpperCase()
+                    }}
                   />
                 </div>
 
@@ -420,6 +554,7 @@ export default function SignUpPage() {
           </Card>
         )}
 
+        {/* Step 5: Activated */}
         {step === "activated" && (
           <Card className="border-[#E5E7EB]">
             <CardContent className="pt-6 text-center space-y-4">
@@ -428,9 +563,12 @@ export default function SignUpPage() {
               </div>
               <h2 className="text-lg font-semibold text-[#0D2137]">Account activated</h2>
               <p className="text-sm text-[#6B7280]">
-                Your account is ready. You are signed in and can access the member portal.
+                Your PSSF self-service account has been activated. You can now enrol, update
+                beneficiaries, submit claims, view statements, and track requests.
               </p>
-              <Badge variant="outline" className="text-[#1A7A4A] border-[#1A7A4A]">Active</Badge>
+              <Badge variant="outline" className="text-[#1A7A4A] border-[#1A7A4A]">
+                Active
+              </Badge>
               <Button asChild className="w-full bg-[#1A7A4A] hover:bg-[#145f3a] text-white">
                 <Link href="/member/dashboard">Go to dashboard</Link>
               </Button>

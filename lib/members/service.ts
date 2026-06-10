@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db"
 
 export async function getMemberProfile(userId: string) {
-  return prisma.member.findFirst({
+  const member = await prisma.member.findFirst({
     where: { user_id: userId },
     select: {
       id: true,
@@ -24,6 +24,37 @@ export async function getMemberProfile(userId: string) {
       is_verified: true,
     },
   })
+
+  // Member not yet enrolled — return minimal profile from users table so OTP works
+  if (!member) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { phone: true, email: true },
+    })
+    if (!user) return null
+    return {
+      id: null,
+      full_name: null,
+      national_id: null,
+      date_of_birth: null,
+      kra_pin: null,
+      member_number: null,
+      personal_number: null,
+      employer_id: null,
+      employer_name: null,
+      date_of_employment: null,
+      date_joined_scheme: null,
+      mobile_number: user.phone,
+      email: user.email,
+      postal_address: null,
+      postal_code: null,
+      town: null,
+      communication_pref: null,
+      is_verified: false,
+    }
+  }
+
+  return member
 }
 
 const EDITABLE_FIELDS = new Set([

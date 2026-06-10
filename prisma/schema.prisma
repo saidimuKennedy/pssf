@@ -353,6 +353,8 @@ model Beneficiary {
   guardian_name         String?
   guardian_relationship String?
   guardian_address      String?
+  guardian_postal_code  String?
+  guardian_town         String?
   guardian_mobile       String?
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt

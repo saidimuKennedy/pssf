@@ -8,6 +8,7 @@ export const DiscrepancyFieldSchema = z.enum([
   "EMPLOYMENT_NUMBER",
   "DATE_OF_EMPLOYMENT",
   "KRA_PIN",
+  "CONTRIBUTION",
   "OTHER",
 ])
 
@@ -21,6 +22,7 @@ export const FIELD_LABELS: Record<DiscrepancyField, string> = {
   EMPLOYMENT_NUMBER: "Employment Number",
   DATE_OF_EMPLOYMENT: "Date of Employment",
   KRA_PIN: "KRA PIN",
+  CONTRIBUTION: "Contribution / Missing Payment",
   OTHER: "Other",
 }
 
@@ -32,9 +34,10 @@ const EMPLOYMENT_FIELDS = new Set<DiscrepancyField>([
 
 export function deriveFieldCategory(
   field: DiscrepancyField
-): "IDENTITY" | "EMPLOYMENT" | "KRA" | "OTHER" {
+): "IDENTITY" | "EMPLOYMENT" | "KRA" | "CONTRIBUTION" | "OTHER" {
   if (EMPLOYMENT_FIELDS.has(field)) return "EMPLOYMENT"
   if (field === "KRA_PIN") return "KRA"
+  if (field === "CONTRIBUTION") return "CONTRIBUTION"
   if (field === "OTHER") return "OTHER"
   return "IDENTITY"
 }
@@ -42,16 +45,19 @@ export function deriveFieldCategory(
 export function getRoutingNote(field: DiscrepancyField): string {
   const category = deriveFieldCategory(field)
   if (category === "EMPLOYMENT") {
-    return "This will be sent to your employer for verification"
+    return "This will be sent to your employer for verification."
   }
-  return "This will be sent to PSSF for verification"
+  if (category === "CONTRIBUTION") {
+    return "This will be reviewed by PSSF and your employer, as both parties may need to confirm the contribution records."
+  }
+  return "This will be sent to PSSF for verification."
 }
 
 export const DiscrepancyFormDataSchema = z.object({
   field_name: DiscrepancyFieldSchema,
   correct_information: z.string().min(1, "Correct information is required"),
   explanation: z.string().min(1, "Explanation is required"),
-  field_category: z.enum(["IDENTITY", "EMPLOYMENT", "KRA", "OTHER"]).optional(),
+  field_category: z.enum(["IDENTITY", "EMPLOYMENT", "KRA", "CONTRIBUTION", "OTHER"]).optional(),
 })
 
 export const MissingContributionTypeSchema = z.enum(["EMPLOYEE", "EMPLOYER", "BOTH"])

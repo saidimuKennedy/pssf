@@ -76,7 +76,7 @@ export default function BeneficiaryAddPage() {
         (data.beneficiaries as BeneficiaryRecord[]).map((b) => ({
           ...b,
           date_of_birth: b.date_of_birth
-            ? new Date(b.date_of_birth).toISOString().split("T")[0]
+            ? new Date(b.date_of_birth).getUTCFullYear().toString()
             : "",
         }))
       )
@@ -125,7 +125,7 @@ export default function BeneficiaryAddPage() {
       relationship_other: isStandard ? "" : b.relationship,
       national_id: b.national_id ?? "",
       birth_cert_number: b.birth_cert_number ?? "",
-      date_of_birth: b.date_of_birth,
+      date_of_birth: b.date_of_birth ? b.date_of_birth.slice(0, 4) : "",
       mobile_number: b.mobile_number ?? "",
       allocation_percent: Number(b.allocation_percent),
       is_minor: b.is_minor,
@@ -136,18 +136,18 @@ export default function BeneficiaryAddPage() {
 
   async function handlePrefillId() {
     const nationalId = watch("national_id")
-    const dob = watch("date_of_birth")
-    if (!nationalId || !dob) {
-      setApiError("Enter National ID and date of birth to validate.")
+    const yob = watch("date_of_birth")
+    if (!nationalId || !yob) {
+      setApiError("Enter National ID and year of birth to validate.")
       return
     }
     setPrefillLoading(true)
     setApiError(null)
     try {
-      const res = await fetch("/api/member/validate", {
+      const res = await fetch("/api/member/validate?allow_new=true", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ national_id: nationalId, date_of_birth: dob }),
+        body: JSON.stringify({ national_id: nationalId, year_of_birth: yob }),
       })
       const data = await res.json()
       if (data.matched && data.member) {
@@ -178,7 +178,8 @@ export default function BeneficiaryAddPage() {
         body: JSON.stringify(values),
       })
       if (!res.ok) {
-        const body = await res.json()
+        let body: { error?: string } = {}
+        try { body = await res.json() } catch {}
         setApiError(body.error ?? "Failed to save beneficiary.")
         return
       }
@@ -327,6 +328,68 @@ export default function BeneficiaryAddPage() {
             </Label>
           </div>
 
+          {!isMinor && (
+            <div className="rounded border border-gray-200 bg-white p-4 space-y-3">
+              <p className="text-xs text-gray-500">Enter National ID and year of birth then click Validate to pre-fill the name fields.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>National ID <span className="text-red-500">*</span></Label>
+                  <Input {...register("national_id")} placeholder="e.g. 12345678" />
+                  {errors.national_id && <p className="text-xs text-red-600">{errors.national_id.message}</p>}
+                </div>
+                <div className="space-y-1">
+                  <Label>Year of Birth <span className="text-red-500">*</span></Label>
+                  <Input
+                    type="number"
+                    min="1900"
+                    max={new Date().getFullYear()}
+                    placeholder="e.g. 1990"
+                    {...register("date_of_birth")}
+                  />
+                  {errors.date_of_birth && (
+                    <p className="text-xs text-red-600">{errors.date_of_birth.message}</p>
+                  )}
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={prefillLoading}
+                onClick={handlePrefillId}
+                className="w-full"
+              >
+                {prefillLoading ? "Validating…" : "Validate & Prefill Name"}
+              </Button>
+            </div>
+          )}
+
+          {isMinor && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Year of Birth <span className="text-red-500">*</span></Label>
+                  <Input
+                    type="number"
+                    min="1900"
+                    max={new Date().getFullYear()}
+                    placeholder="e.g. 2010"
+                    {...register("date_of_birth")}
+                  />
+                  {errors.date_of_birth && (
+                    <p className="text-xs text-red-600">{errors.date_of_birth.message}</p>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label>Birth Certificate Number <span className="text-red-500">*</span></Label>
+                  <Input {...register("birth_cert_number")} />
+                  {errors.birth_cert_number && (
+                    <p className="text-xs text-red-600">{errors.birth_cert_number.message}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label>Surname <span className="text-red-500">*</span></Label>
@@ -370,13 +433,6 @@ export default function BeneficiaryAddPage() {
               </div>
             )}
             <div className="space-y-1">
-              <Label>Date of Birth <span className="text-red-500">*</span></Label>
-              <Input type="date" {...register("date_of_birth")} />
-              {errors.date_of_birth && (
-                <p className="text-xs text-red-600">{errors.date_of_birth.message}</p>
-              )}
-            </div>
-            <div className="space-y-1">
               <Label>Allocation % <span className="text-red-500">*</span></Label>
               <Input
                 type="number"
@@ -392,38 +448,9 @@ export default function BeneficiaryAddPage() {
           </div>
 
           {!isMinor && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label>National ID (optional)</Label>
-                  <Input {...register("national_id")} placeholder="For prefill validation" />
-                </div>
-                <div className="space-y-1 flex items-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={prefillLoading}
-                    onClick={handlePrefillId}
-                    className="w-full"
-                  >
-                    {prefillLoading ? "Validating…" : "Validate & Prefill"}
-                  </Button>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label>Birth Certificate No. (optional)</Label>
-                <Input {...register("birth_cert_number")} />
-              </div>
-            </div>
-          )}
-
-          {isMinor && (
             <div className="space-y-1">
-              <Label>Birth Certificate Number <span className="text-red-500">*</span></Label>
+              <Label>Birth Certificate No. (optional)</Label>
               <Input {...register("birth_cert_number")} />
-              {errors.birth_cert_number && (
-                <p className="text-xs text-red-600">{errors.birth_cert_number.message}</p>
-              )}
             </div>
           )}
 
