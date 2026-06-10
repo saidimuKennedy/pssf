@@ -1292,12 +1292,13 @@ async function main() {
 
   const kennedyEmployerUser = await prisma.user.upsert({
     where: { email: "kennedy.employer@pssf.go.ke" },
-    update: {},
+    update: { phone: "+254704696287" },
     create: {
       id: "usr-kenEmp-000-0000-000000000001",
       email: "kennedy.employer@pssf.go.ke",
       password_hash: HASH("Kennedy@1234"),
       role: Role.EMPLOYER,
+      phone: "+254704696287",
       is_active: true,
     },
   })
@@ -1317,24 +1318,26 @@ async function main() {
   // Upsert by id (not email) so the where clause works regardless of prior email value.
   await prisma.user.upsert({
     where: { id: "usr-kenOff-000-0000-000000000001" },
-    update: { email: "waruirukennedy2@gmail.com", password_hash: HASH("Kennedy@1234"), is_active: true },
+    update: { email: "waruirukennedy2@gmail.com", password_hash: HASH("Kennedy@1234"), phone: "+254704696287", is_active: true },
     create: {
       id: "usr-kenOff-000-0000-000000000001",
       email: "waruirukennedy2@gmail.com",
       password_hash: HASH("Kennedy@1234"),
       role: Role.PSSF_OFFICER,
+      phone: "+254704696287",
       is_active: true,
     },
   })
 
   await prisma.user.upsert({
     where: { email: "kennedy.admin@pssf.go.ke" },
-    update: {},
+    update: { phone: "+254704696287" },
     create: {
       id: "usr-kenAdm-000-0000-000000000001",
       email: "kennedy.admin@pssf.go.ke",
       password_hash: HASH("Kennedy@1234"),
       role: Role.ADMIN,
+      phone: "+254704696287",
       is_active: true,
     },
   })
