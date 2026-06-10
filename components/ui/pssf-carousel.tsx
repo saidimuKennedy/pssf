@@ -1,54 +1,44 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import Image from "next/image"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const SLIDES = [
+export interface CarouselSlide {
+  src: string
+  alt: string
+  caption?: string
+  tag?: string
+}
+
+const DEFAULT_SLIDES: CarouselSlide[] = [
   {
-    tag: "About PSSF",
-    heading: "Kenya's Public Service Pension, Modernised",
-    body: "The Public Service Superannuation Fund (PSSF) was established under the Public Service Superannuation Scheme Act, 2012. It replaces the old non-contributory pension system and covers all public servants employed on or after 1 January 2021.",
-    accent: "#1A7A4A",
+    src: "/images/3rd_annual_meeting.jpeg",
+    alt: "PSSF CEO addressing members at the 3rd Annual Members Meeting",
+    caption: "3rd Annual Members Meeting",
+    tag: "Leadership",
   },
   {
-    tag: "Contributions",
-    heading: "A Shared Commitment to Your Future",
-    body: "As a member you contribute 7.5% of your basic salary every month. Your employer — the Government of Kenya — contributes 15%. These funds are pooled, invested, and grow on your behalf until retirement or separation.",
-    accent: "#2563EB",
-  },
-  {
-    tag: "Benefits",
-    heading: "What You're Entitled To",
-    body: "PSSF provides retirement benefits, invalidity benefits, and death/survivor benefits. On reaching retirement age (60 years) or completing 10 years of service, members receive a lump-sum gratuity plus a monthly pension for life.",
-    accent: "#7C3AED",
-  },
-  {
-    tag: "Regulation",
-    heading: "Supervised & Fully Regulated",
-    body: "PSSF is registered with and regulated by the Retirement Benefits Authority (RBA) under Cap. 197 of the Laws of Kenya. The fund is audited annually and reports to the National Treasury and Parliament.",
-    accent: "#D97706",
-  },
-  {
-    tag: "AVC",
-    heading: "Grow Your Nest Egg Faster",
-    body: "Additional Voluntary Contributions (AVC) let you top up your mandatory contributions at any time. There is no upper limit — any extra amount you contribute is invested and compounded, boosting your final benefit payout.",
-    accent: "#0891B2",
-  },
-  {
-    tag: "Digital Portal",
-    heading: "Self-Service, Anywhere",
-    body: "This portal lets you enrol, nominate beneficiaries, set up AVCs, submit claims, and download contribution statements — all without visiting an office. Every submission is cryptographically logged for your protection.",
-    accent: "#E11D48",
+    src: "/images/3rd_meeting.jpeg",
+    alt: "PSSF Board of Trustees and senior officials at the 3rd Annual Meeting",
+    caption: "Board of Trustees & Senior Officials",
+    tag: "Governance",
   },
 ]
 
-export function PssfCarousel() {
+interface PssfCarouselProps {
+  slides?: CarouselSlide[]
+  /** tall = landing page hero size, compact = dashboard widget */
+  size?: "tall" | "compact"
+}
+
+export function PssfCarousel({ slides = DEFAULT_SLIDES, size = "compact" }: PssfCarouselProps) {
   const [current, setCurrent] = useState(0)
   const [paused, setPaused] = useState(false)
 
-  const next = useCallback(() => setCurrent((c) => (c + 1) % SLIDES.length), [])
-  const prev = () => setCurrent((c) => (c - 1 + SLIDES.length) % SLIDES.length)
+  const next = useCallback(() => setCurrent((c) => (c + 1) % slides.length), [slides.length])
+  const prev = () => setCurrent((c) => (c - 1 + slides.length) % slides.length)
 
   useEffect(() => {
     if (paused) return
@@ -56,63 +46,70 @@ export function PssfCarousel() {
     return () => clearInterval(t)
   }, [paused, next])
 
-  const slide = SLIDES[current]
+  const slide = slides[current]
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm"
+      className="relative overflow-hidden rounded-2xl bg-[#0D2137] group"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Accent bar */}
-      <div className="h-1 w-full transition-all duration-500" style={{ background: slide.accent }} />
+      {/* Image */}
+      <div className={cn("relative w-full", size === "tall" ? "h-72 sm:h-96" : "h-48")}>
+        <Image
+          key={slide.src}
+          src={slide.src}
+          alt={slide.alt}
+          fill
+          className="object-cover transition-opacity duration-500"
+          sizes="(max-width: 768px) 100vw, 50vw"
+          priority={current === 0}
+        />
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0D2137]/80 via-transparent to-transparent" />
+      </div>
 
-      <div className="px-5 py-5 min-h-[130px] flex flex-col justify-between gap-3">
-        <div className="space-y-1.5">
-          <span
-            className="inline-block text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full"
-            style={{ background: `${slide.accent}18`, color: slide.accent }}
-          >
-            {slide.tag}
-          </span>
-          <h3 className="text-sm font-black text-[#0D2137] leading-snug">{slide.heading}</h3>
-          <p className="text-xs text-gray-500 leading-relaxed">{slide.body}</p>
+      {/* Caption */}
+      {(slide.caption || slide.tag) && (
+        <div className="absolute bottom-10 left-0 right-0 px-4">
+          {slide.tag && (
+            <span className="inline-block text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-[#1A7A4A]/80 text-white mb-1">
+              {slide.tag}
+            </span>
+          )}
+          {slide.caption && (
+            <p className="text-xs font-bold text-white/90 leading-snug">{slide.caption}</p>
+          )}
         </div>
+      )}
 
-        {/* Controls */}
-        <div className="flex items-center justify-between pt-1">
-          {/* Dots */}
-          <div className="flex gap-1.5">
-            {SLIDES.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrent(i)}
-                className={cn(
-                  "rounded-full transition-all duration-300 cursor-pointer",
-                  i === current ? "w-5 h-1.5" : "w-1.5 h-1.5 bg-gray-200 hover:bg-gray-300"
-                )}
-                style={i === current ? { background: slide.accent } : undefined}
-                aria-label={`Go to slide ${i + 1}`}
-              />
-            ))}
-          </div>
+      {/* Arrows */}
+      <button
+        onClick={prev}
+        className="absolute left-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-full bg-black/30 text-white opacity-0 group-hover:opacity-100 hover:bg-black/50 transition-all cursor-pointer"
+      >
+        <ChevronLeft className="size-4" />
+      </button>
+      <button
+        onClick={next}
+        className="absolute right-2 top-1/2 -translate-y-1/2 flex size-7 items-center justify-center rounded-full bg-black/30 text-white opacity-0 group-hover:opacity-100 hover:bg-black/50 transition-all cursor-pointer"
+      >
+        <ChevronRight className="size-4" />
+      </button>
 
-          {/* Arrows */}
-          <div className="flex gap-1">
-            <button
-              onClick={prev}
-              className="flex size-6 items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-all cursor-pointer"
-            >
-              <ChevronLeft className="size-3.5" />
-            </button>
-            <button
-              onClick={next}
-              className="flex size-6 items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600 transition-all cursor-pointer"
-            >
-              <ChevronRight className="size-3.5" />
-            </button>
-          </div>
-        </div>
+      {/* Dots */}
+      <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
+        {slides.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setCurrent(i)}
+            className={cn(
+              "rounded-full transition-all duration-300 cursor-pointer",
+              i === current ? "w-5 h-1.5 bg-white" : "w-1.5 h-1.5 bg-white/40 hover:bg-white/60"
+            )}
+            aria-label={`Go to slide ${i + 1}`}
+          />
+        ))}
       </div>
     </div>
   )

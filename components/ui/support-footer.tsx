@@ -3,7 +3,7 @@
 import { useState } from "react"
 import {
   Home, HelpCircle, Bot, Phone, Mail, MessageSquare,
-  MapPin, Clock, X, type LucideIcon,
+  MapPin, Clock, X, ChevronDown, type LucideIcon,
   LayoutDashboard, FileText, Users, TrendingUp, Banknote,
   Heart, BarChart2, BarChart3, AlertTriangle, Clock as ClockIcon,
   CheckSquare, FolderOpen, UserPlus, PiggyBank, Building2,
@@ -28,12 +28,52 @@ export interface FooterNavItem {
 type Sheet = "help" | "agent" | null
 
 const FAQS = [
-  "How do I nominate a beneficiary?",
-  "How do I apply for AVC contributions?",
-  "How do I track my application status?",
-  "What documents are required for claims?",
-  "How do I update my personal details?",
+  {
+    q: "How do I nominate a beneficiary?",
+    a: "Sign in, go to Beneficiary Nomination, complete the form with nominees' details and allocations, then submit for PSSF review.",
+  },
+  {
+    q: "How do I apply for AVC contributions?",
+    a: "Go to AVC Contributions, choose your contribution method (payroll or direct), enter the amount, and your employer will be notified.",
+  },
+  {
+    q: "How do I track my application status?",
+    a: "Go to My Requests. Each submission shows its current status — Draft, Pending Employer, Under Review, Approved, or Completed.",
+  },
+  {
+    q: "What documents are required for claims?",
+    a: "Benefits claims need your National ID, employment letter, and bank details. Death claims also require a death certificate and next-of-kin ID.",
+  },
+  {
+    q: "How do I update my personal details?",
+    a: "Visit My Profile in the portal to update contact info. Core identity changes (name, ID) require supporting documents.",
+  },
 ]
+
+function FaqAccordion() {
+  const [open, setOpen] = useState<number | null>(null)
+  return (
+    <div className="space-y-1.5 max-h-64 overflow-y-auto">
+      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Frequently Asked Questions</p>
+      {FAQS.map(({ q, a }, i) => (
+        <div key={i} className="rounded-xl border border-gray-100 overflow-hidden">
+          <button
+            onClick={() => setOpen(open === i ? null : i)}
+            className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-bold text-[#0D2137] hover:bg-[#E8F5EE] transition-colors cursor-pointer text-left gap-2"
+          >
+            <span>{q}</span>
+            <ChevronDown className={cn("size-3.5 shrink-0 text-gray-400 transition-transform", open === i && "rotate-180")} />
+          </button>
+          {open === i && (
+            <div className="px-3 pb-3 text-xs text-gray-500 leading-relaxed border-t border-gray-100 pt-2">
+              {a}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
 
 interface SupportFooterProps {
   nav: FooterNavItem[]
@@ -62,16 +102,7 @@ export function SupportFooter({ nav }: SupportFooterProps) {
           {/* Expanded content */}
           {sheet && (
             <div className="px-4 pb-3 animate-in slide-in-from-bottom-2 duration-200">
-              {sheet === "help" && (
-                <div className="space-y-2 max-h-56 overflow-y-auto">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Frequently Asked Questions</p>
-                  {FAQS.map((q) => (
-                    <div key={q} className="rounded-xl border border-gray-100 px-3 py-2.5 text-xs font-medium text-[#0D2137] hover:bg-[#E8F5EE] hover:border-[#1A7A4A]/20 transition-colors cursor-pointer">
-                      {q}
-                    </div>
-                  ))}
-                </div>
-              )}
+              {sheet === "help" && <FaqAccordion />}
 
               {sheet === "agent" && (
                 <div className="space-y-3">

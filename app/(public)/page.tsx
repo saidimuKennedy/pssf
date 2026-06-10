@@ -6,7 +6,7 @@ export default function LandingPage() {
   return (
     <>
       <Navbar />
-      <main>
+      <main className="pb-20">
         <ServicesGrid />
       </main>
       <Footer />

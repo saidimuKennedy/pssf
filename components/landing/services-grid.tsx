@@ -117,7 +117,7 @@ export function ServicesGrid() {
 
           {/* PSSF Carousel */}
           <div className="lg:sticky lg:top-24">
-            <PssfCarousel />
+            <PssfCarousel size="tall" />
             <div className="mt-4 rounded-2xl border border-[#1A7A4A]/20 bg-[#E8F5EE] px-5 py-4">
               <p className="text-xs font-black text-[#1A7A4A] uppercase tracking-wider mb-1">Quick Access</p>
               <p className="text-xs text-gray-500 leading-relaxed mb-3">
