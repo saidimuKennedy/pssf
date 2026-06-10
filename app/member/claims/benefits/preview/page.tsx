@@ -50,7 +50,7 @@ export default function BenefitsPreviewPage() {
         <p><strong>Bank:</strong> {(fd.bank_name as string) ?? "—"} — {(fd.bank_account_number as string) ?? "—"}{fd.bank_branch ? ` (${fd.bank_branch})` : ""}</p>
         <p><strong>Leaving:</strong> {(fd.date_of_leaving as string) ?? "—"} — {((fd.reason_for_leaving as string) ?? "—").replace(/_/g, " ")}</p>
         {opt && <p><strong>Option:</strong> {BENEFIT_OPTION_TEXT[opt]?.title}</p>}
-        {fd.mpesa_number && <p><strong>M-Pesa:</strong> {fd.mpesa_number as string}</p>}
+        {fd.mpesa_number ? <p><strong>M-Pesa:</strong> {String(fd.mpesa_number)}</p> : null}
       </div>
       <div className="flex gap-2"><Checkbox checked={previewConfirmed} onCheckedChange={(v) => setPreviewConfirmed(Boolean(v))} id="p" /><Label htmlFor="p">I confirm payment details are correct (second confirmation)</Label></div>
       {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
