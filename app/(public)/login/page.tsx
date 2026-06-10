@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { requestOtpAction, verifyIdentityAction, otpLoginAction } from "./actions"
+import { extractPhoneParam } from "@/lib/phone"
 import { PssfLogo } from "@/components/pssf-logo"
 import Link from "next/link"
 import { Lock, Smartphone, ShieldCheck, ArrowRight, ArrowLeft, IdCard } from "lucide-react"
 
 function LoginForm() {
   const searchParams = useSearchParams()
-  const phoneFromUrl = searchParams.get("phone") ?? ""
+  const phoneFromUrl = extractPhoneParam(searchParams.get("phone"))
 
   const [step, setStep] = useState<"phone" | "identity" | "otp">(
     phoneFromUrl ? "identity" : "phone"

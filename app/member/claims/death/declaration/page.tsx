@@ -11,6 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SignaturePad } from "@/components/ui/signature-pad"
 import { DEATH_STEPS } from "@/lib/death-benefits/journey"
 import type { DeathClaimant } from "@/lib/validations/death-benefits"
+import { sendDeclarationOtpAction, verifyDeclarationOtpAction } from "./actions"
 
 export default function DeathDeclarationPage() {
   const router = useRouter()
@@ -18,6 +19,8 @@ export default function DeathDeclarationPage() {
   const [claimants, setClaimants] = useState<DeathClaimant[]>([])
   const [confirmed, setConfirmed] = useState<Record<number, boolean>>({})
   const [otp, setOtp] = useState("")
+  const [masked, setMasked] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
   const [signatureData, setSignatureData] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -30,12 +33,26 @@ export default function DeathDeclarationPage() {
       })
   }, [caseId])
 
+  async function sendCode() {
+    if (claimants.some((_, i) => !confirmed[i])) { setError("Each claimant must confirm the declaration first."); return }
+    setError(null)
+    setSending(true)
+    const res = await sendDeclarationOtpAction()
+    setSending(false)
+    if (res.error) { setError(res.error); return }
+    setMasked(res.masked ?? null)
+  }
+
   async function save() {
     if (claimants.some((_, i) => !confirmed[i])) {
       setError("Each claimant must confirm the declaration.")
       return
     }
+    if (!otp) { setError("Enter the verification code sent to your phone."); return }
     setError(null)
+
+    const verify = await verifyDeclarationOtpAction(otp)
+    if (verify.error) { setError(verify.error); return }
 
     const updated = claimants.map((c) => ({ ...c, declaration_confirmed: true }))
     const getRes = await fetch(`/api/cases/${caseId}`)
@@ -96,17 +113,28 @@ export default function DeathDeclarationPage() {
         <SignaturePad onChange={setSignatureData} />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="otp">Verification Code (sent to primary claimant mobile)</Label>
+      <div className="space-y-3 rounded-xl border border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <Label className="text-sm font-bold text-[#0D2137]">Verification Code</Label>
+            {masked
+              ? <p className="text-xs text-gray-400 mt-0.5">Code sent to {masked}</p>
+              : <p className="text-xs text-gray-400 mt-0.5">We'll send a code to your registered phone</p>
+            }
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={sendCode} disabled={sending} className="shrink-0 text-xs">
+            {sending ? "Sending…" : masked ? "Resend" : "Send Code"}
+          </Button>
+        </div>
         <Input
-          id="otp"
           type="text"
           value={otp}
           onChange={(e) => setOtp(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
           maxLength={6}
           className="text-center font-mono tracking-widest text-lg"
-          placeholder="ABC123"
+          placeholder="— — — — — —"
           autoComplete="one-time-code"
+          disabled={!masked}
         />
       </div>
 
@@ -118,7 +146,9 @@ export default function DeathDeclarationPage() {
 
       <Button
         onClick={save}
-        disabled={claimants.length > 0 && claimants.some((_, i) => !confirmed[i])}
+        disabled={
+          (claimants.length > 0 && claimants.some((_, i) => !confirmed[i])) || !otp
+        }
         className="w-full bg-[#E11D48] hover:bg-[#be123c] text-white"
       >
         Continue

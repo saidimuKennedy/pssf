@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { validateMemberAction, sendSignUpOtpAction, activateAccountAction } from "./actions"
+import { extractPhoneParam } from "@/lib/phone"
 import { PssfLogo } from "@/components/pssf-logo"
 import Link from "next/link"
 import { 
@@ -40,7 +41,7 @@ const STEPS: { key: Step; label: string }[] = [
 
 function SignUpForm() {
   const searchParams = useSearchParams()
-  const phoneFromUrl = searchParams.get("phone") ?? ""
+  const phoneFromUrl = extractPhoneParam(searchParams.get("phone"))
 
   const [step, setStep] = useState<Step>("validate")
   const [memberData, setMemberData] = useState<Record<string, string> | null>(null)
