@@ -35,7 +35,7 @@ const BADGES = [
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#E8F5EE]/40 via-white to-[#EFF6FF]/40 pt-24 pb-20">
+    <section className="relative bg-gradient-to-br from-[#E8F5EE]/40 via-white to-[#EFF6FF]/40 pt-24 pb-20">
       {/* Decorative background */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute top-0 left-0 right-0 h-[600px] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(26,122,74,0.12),rgba(255,255,255,0))]" />
