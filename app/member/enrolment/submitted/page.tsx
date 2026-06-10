@@ -37,10 +37,10 @@ export default function EnrolmentStep7Page() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <Button asChild variant="outline" size="lg" className="flex-1">
+        <Button asChild variant="outline" size="lg" className="w-full sm:flex-1">
           <Link href="/member/requests">View My Requests</Link>
         </Button>
-        <Button asChild size="lg" className="flex-1 bg-[#1A7A4A] hover:bg-[#145f3a] text-white">
+        <Button asChild size="lg" className="w-full sm:flex-1 bg-[#1A7A4A] hover:bg-[#145f3a] text-white">
           <Link href="/member/dashboard">Back to Dashboard</Link>
         </Button>
       </div>

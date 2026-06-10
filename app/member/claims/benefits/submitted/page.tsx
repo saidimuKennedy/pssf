@@ -19,9 +19,9 @@ export default function BenefitsSubmittedPage() {
       <h1 className="text-2xl font-bold">Claim Submitted</h1>
       <p className="font-mono text-lg">{reference}</p>
       <StatusBadge status={status} />
-      <div className="flex gap-3 justify-center">
-        <Button asChild variant="outline"><Link href="/member/requests">Track Request</Link></Button>
-        <Button asChild className="bg-[#7C3AED] text-white"><Link href="/member/dashboard">Dashboard</Link></Button>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Button asChild variant="outline" size="lg" className="w-full sm:flex-1"><Link href="/member/requests">Track Request</Link></Button>
+        <Button asChild size="lg" className="w-full sm:flex-1 bg-[#7C3AED] hover:bg-[#6d28d9] text-white"><Link href="/member/dashboard">Back to Dashboard</Link></Button>
       </div>
     </div>
   )

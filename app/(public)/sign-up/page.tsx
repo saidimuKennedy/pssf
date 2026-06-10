@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useActionState, useEffect, useTransition } from "react"
+import { useState, useActionState, useEffect, useTransition, Suspense } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -37,10 +38,13 @@ const STEPS: { key: Step; label: string }[] = [
   { key: "activated", label: "Complete" },
 ]
 
-export default function SignUpPage() {
+function SignUpForm() {
+  const searchParams = useSearchParams()
+  const phoneFromUrl = searchParams.get("phone") ?? ""
+
   const [step, setStep] = useState<Step>("validate")
   const [memberData, setMemberData] = useState<Record<string, string> | null>(null)
-  const [phone, setPhone] = useState("")
+  const [phone, setPhone] = useState(phoneFromUrl)
   const [email, setEmail] = useState("")
   const [postalAddress, setPostalAddress] = useState("")
   const [postalCode, setPostalCode] = useState("")
@@ -196,8 +200,13 @@ export default function SignUpPage() {
                       name="phone"
                       type="tel"
                       placeholder="+254700000000"
+                      defaultValue={phoneFromUrl}
+                      readOnly={!!phoneFromUrl}
                       required
-                      className="h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]"
+                      className={cn(
+                        "h-11 rounded-xl border-gray-250 focus-visible:ring-1 focus-visible:ring-[#1A7A4A]",
+                        phoneFromUrl && "bg-gray-50 text-gray-500 cursor-not-allowed"
+                      )}
                     />
                   </div>
 
@@ -521,6 +530,10 @@ export default function SignUpPage() {
                   <input type="hidden" name="phone" value={phone} />
                   <input type="hidden" name="national_id" value={memberData.national_id} />
                   <input type="hidden" name="full_name" value={memberData.full_name} />
+                  <input type="hidden" name="year_of_birth" value={memberData.year_of_birth ?? ""} />
+                  <input type="hidden" name="kra_pin" value={memberData.kra_pin ?? ""} />
+                  <input type="hidden" name="member_number" value={memberData.member_number ?? ""} />
+                  <input type="hidden" name="personal_number" value={memberData.personal_number ?? ""} />
                   <input type="hidden" name="email" value={email} />
                   <input type="hidden" name="postal_address" value={postalAddress} />
                   <input type="hidden" name="postal_code" value={postalCode} />
@@ -761,5 +774,13 @@ export default function SignUpPage() {
 
       </div>
     </main>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-gray-500">Loading…</div>}>
+      <SignUpForm />
+    </Suspense>
   )
 }

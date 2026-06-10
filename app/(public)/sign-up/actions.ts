@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db"
 import { SignUpSchema } from "@/lib/validations/auth"
 import { lookupById } from "@/lib/kra/members"
+import { ensureMemberDemoData, getDefaultEmployer } from "@/lib/members/provision"
 import bcrypt from "bcryptjs"
 import { generateOTP, validateOTP } from "@/lib/kra/otp"
 import { NotificationChannel, Role } from "@prisma/client"
@@ -63,19 +64,9 @@ export async function validateMemberAction(prevState: unknown, formData: FormDat
   }
 
   const memberRecord = await prisma.member.findFirst({ where: { national_id } })
-  if (!memberRecord) {
-    return {
-      matchStatus: "NOT_FOUND" as MatchStatus,
-      error: {
-        fieldErrors: {
-          national_id: ["You are not registered as a PSSF member. Contact PSSF for assistance."],
-        },
-      },
-    }
-  }
 
   // Account already fully activated
-  if (memberRecord.user_id) {
+  if (memberRecord?.user_id) {
     const linked = await prisma.user.findUnique({ where: { id: memberRecord.user_id } })
     if (linked?.phone) {
       return {
@@ -89,39 +80,24 @@ export async function validateMemberAction(prevState: unknown, formData: FormDat
     }
   }
 
-  // Record found but no contact details on file
-  const hasContact = !!(memberRecord.mobile_number || memberRecord.email)
-  if (!hasContact && !phone) {
-    return {
-      matchStatus: "NO_CONTACT" as MatchStatus,
-      error: {
-        fieldErrors: {
-          national_id: [
-            "Your PSSF record has no contact details on file. Please visit a PSSF office to have your contact information updated before activating online access.",
-          ],
-        },
-      },
-    }
-  }
-
   return {
     success: true,
     matchStatus: "MATCHED" as MatchStatus,
     member: {
-      id: memberRecord.id,
-      full_name: kraResult.name ?? memberRecord.full_name,
-      national_id: memberRecord.national_id,
-      year_of_birth: year_of_birth,
-      kra_pin: kraResult.kra_pin ?? memberRecord.kra_pin ?? "",
-      member_number: memberRecord.member_number ?? "",
-      personal_number: memberRecord.personal_number ?? "",
-      employer_name: memberRecord.employer_name ?? "",
+      id: memberRecord?.id ?? "",
+      full_name: kraResult.name ?? memberRecord?.full_name ?? "",
+      national_id,
+      year_of_birth,
+      kra_pin: kraResult.kra_pin ?? memberRecord?.kra_pin ?? "",
+      member_number: memberRecord?.member_number ?? `TSC${Date.now().toString().slice(-8)}`,
+      personal_number: memberRecord?.personal_number ?? `${Math.floor(100000 + Math.random() * 900000)}`,
+      employer_name: memberRecord?.employer_name ?? "Teachers Service Commission",
       mobile_number: phone,
-      email: memberRecord.email ?? "",
-      postal_address: memberRecord.postal_address ?? "",
-      postal_code: memberRecord.postal_code ?? "",
-      town: memberRecord.town ?? "",
-      communication_pref: memberRecord.communication_pref,
+      email: memberRecord?.email ?? "",
+      postal_address: memberRecord?.postal_address ?? "",
+      postal_code: memberRecord?.postal_code ?? "",
+      town: memberRecord?.town ?? "",
+      communication_pref: memberRecord?.communication_pref ?? "PORTAL",
     },
   }
 }
@@ -143,6 +119,10 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
   const code = formData.get("code") as string
   const national_id = formData.get("national_id") as string
   const full_name = formData.get("full_name") as string
+  const year_of_birth = (formData.get("year_of_birth") as string) || null
+  const kra_pin = (formData.get("kra_pin") as string) || null
+  const provided_member_number = (formData.get("member_number") as string) || null
+  const provided_personal_number = (formData.get("personal_number") as string) || null
   const email = (formData.get("email") as string) || null
   const postal_address = (formData.get("postal_address") as string) || null
   const postal_code = (formData.get("postal_code") as string) || null
@@ -177,9 +157,11 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
         : NotificationChannel.PORTAL
 
   const member = await prisma.member.findFirst({ where: { national_id } })
+  let memberId: string
 
   try {
     if (member?.user_id) {
+      // Existing linked user — update details
       await prisma.user.update({
         where: { id: member.user_id },
         data: {
@@ -190,7 +172,21 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
           ...(password_hash ? { password_hash } : {}),
         },
       })
-    } else {
+      await prisma.member.update({
+        where: { id: member.id },
+        data: {
+          is_verified: true,
+          mobile_number: phone,
+          email: email || member.email || undefined,
+          postal_address: postal_address || member.postal_address || undefined,
+          postal_code: postal_code || member.postal_code || undefined,
+          town: town || member.town || undefined,
+          communication_pref: commPref,
+        },
+      })
+      memberId = member.id
+    } else if (member) {
+      // Member record exists but no user yet
       const user = await prisma.user.create({
         data: {
           phone,
@@ -201,12 +197,73 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
           ...(password_hash ? { password_hash } : {}),
         },
       })
-      if (member) {
-        await prisma.member.update({
-          where: { id: member.id },
-          data: { user_id: user.id, is_verified: true },
+      await prisma.member.update({
+        where: { id: member.id },
+        data: {
+          user_id: user.id,
+          is_verified: true,
+          mobile_number: phone,
+          email: email || member.email || undefined,
+          postal_address: postal_address || member.postal_address || undefined,
+          postal_code: postal_code || member.postal_code || undefined,
+          town: town || member.town || undefined,
+          communication_pref: commPref,
+        },
+      })
+      memberId = member.id
+    } else {
+      // No member record — provision a bare account from KRA data, then let
+      // ensureMemberDemoData() below fill in everything else.
+      // User may already exist (e.g. from a previous partial attempt or login test).
+      let user = await prisma.user.findFirst({ where: { phone } })
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            phone,
+            email: email || null,
+            role: Role.MEMBER,
+            is_active: true,
+            otp_verified_at: new Date(),
+            ...(password_hash ? { password_hash } : {}),
+          },
+        })
+      } else {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            email: email || user.email || null,
+            role: Role.MEMBER,
+            is_active: true,
+            otp_verified_at: new Date(),
+            ...(password_hash ? { password_hash } : {}),
+          },
         })
       }
+
+      const employer = await getDefaultEmployer()
+      const dob = year_of_birth ? new Date(`${year_of_birth}-07-01`) : new Date("1980-07-01")
+
+      const newMember = await prisma.member.create({
+        data: {
+          user_id: user.id,
+          national_id,
+          full_name,
+          date_of_birth: dob,
+          kra_pin: kra_pin || undefined,
+          member_number: provided_member_number || undefined,
+          personal_number: provided_personal_number || undefined,
+          employer_id: employer.id,
+          employer_name: employer.name,
+          mobile_number: phone,
+          email: email || null,
+          postal_address: postal_address || null,
+          postal_code: postal_code || null,
+          town: town || null,
+          communication_pref: commPref,
+          is_verified: true,
+        },
+      })
+      memberId = newMember.id
     }
   } catch (e) {
     if (e && typeof e === "object" && "code" in e && (e as { code?: string }).code === "P2002") {
@@ -215,28 +272,15 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
       if (field.includes("email"))
         return { error: "This email is already linked to another account. Use a different email." }
       if (field.includes("phone"))
-        return {
-          error: "This phone number is already linked to another account. Use a different number.",
-        }
+        return { error: "This phone number is already linked to another account. Use a different number." }
       return { error: "These details are already linked to another account." }
     }
     throw e
   }
 
-  if (member) {
-    await prisma.member.update({
-      where: { id: member.id },
-      data: {
-        is_verified: true,
-        mobile_number: phone,
-        email: email || member.email || undefined,
-        postal_address: postal_address || member.postal_address || undefined,
-        postal_code: postal_code || member.postal_code || undefined,
-        town: town || member.town || undefined,
-        communication_pref: commPref,
-      },
-    })
-  }
+  // Guarantee a complete, demo-ready account: full profile + contributions +
+  // beneficiaries. Idempotent, so existing members only get their gaps filled.
+  await ensureMemberDemoData(memberId)
 
   return { success: true, registered: true }
 }

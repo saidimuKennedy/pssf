@@ -42,10 +42,10 @@ export default function BeneficiarySubmittedPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
-        <Button asChild variant="outline" size="lg" className="flex-1">
+        <Button asChild variant="outline" size="lg" className="w-full sm:flex-1">
           <Link href="/member/requests">Track My Request</Link>
         </Button>
-        <Button asChild size="lg" className="flex-1 bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
+        <Button asChild size="lg" className="w-full sm:flex-1 bg-[#2563EB] hover:bg-[#1d4ed8] text-white">
           <Link href="/member/dashboard">Back to Dashboard</Link>
         </Button>
       </div>

@@ -11,31 +11,82 @@ import { Role } from "@prisma/client"
 
 const STAFF_ROLES: Role[] = [Role.PSSF_OFFICER, Role.PSSF_SUPERVISOR, Role.ADMIN, Role.EMPLOYER]
 
+function normalizePhone(raw: string): string {
+  let n = raw.trim().replace(/[^\d+]/g, "")
+  if (n.startsWith("0")) n = "+254" + n.slice(1)
+  else if (n.startsWith("254") && !n.startsWith("+")) n = "+" + n
+  return n
+}
+
 export async function requestOtpAction(prevState: unknown, formData: FormData) {
   const parsed = RequestOtpSchema.safeParse({ phone: formData.get("phone") })
   if (!parsed.success) {
     return { error: parsed.error.flatten().fieldErrors.phone?.[0] ?? "Invalid phone number" }
   }
 
-  const phone = parsed.data.phone
-  if (!phone) {
-    return { error: "Phone number is required." }
-  }
+  const phone = normalizePhone(parsed.data.phone ?? "")
+  if (!phone) return { error: "Phone number is required." }
 
   const user = await prisma.user.findFirst({ where: { phone, role: { in: [Role.MEMBER, Role.CLAIMANT] } } })
   if (!user) return { error: "No account found for this phone number. Please sign up first." }
   if (!user.is_active) return { error: "Account is disabled. Contact support." }
 
-  const result = await generateOTP(phone)
-  if (!result.success) {
-    return { error: "Could not send your verification code. Please try again." }
-  }
-
   return { success: true, phone }
 }
 
+export async function verifyIdentityAction(prevState: unknown, formData: FormData) {
+  const phone = normalizePhone((formData.get("phone") as string) ?? "")
+  const nationalId = (formData.get("national_id") as string)?.trim()
+  const yearOfBirth = (formData.get("year_of_birth") as string)?.trim()
+
+  if (!nationalId || !yearOfBirth) {
+    return { error: "National ID and year of birth are required." }
+  }
+  if (!/^\d{4}$/.test(yearOfBirth)) {
+    return { error: "Enter a valid 4-digit year of birth." }
+  }
+
+  // Verify identity with KRA — same pattern as member enrollment
+  const { lookupById } = await import("@/lib/kra/members")
+  const kra = await lookupById(nationalId, phone, yearOfBirth)
+  if (!kra.success) {
+    return { error: kra.error ?? "We could not verify your identity. Please check your details." }
+  }
+
+  // KRA confirmed identity — find their PSSF account
+  const user = await prisma.user.findFirst({
+    where: { phone, role: { in: [Role.MEMBER, Role.CLAIMANT] } },
+    include: { member: { select: { id: true, national_id: true, full_name: true, kra_pin: true, date_of_birth: true } } },
+  })
+
+  if (!user) {
+    return {
+      error: "Your identity was verified but no PSSF account was found for this number. Please sign up or contact PSSF to register.",
+    }
+  }
+
+  // Reconcile member record with fresh KRA data
+  if (user.member?.id) {
+    const updates: Record<string, unknown> = {}
+    if (!user.member.national_id && kra.national_id) updates.national_id = kra.national_id
+    if (!user.member.kra_pin && kra.kra_pin) updates.kra_pin = kra.kra_pin
+    if (kra.name && kra.name !== user.member.full_name) updates.full_name = kra.name
+    if (!user.member.date_of_birth && kra.yob) updates.date_of_birth = new Date(`${kra.yob}-01-01`)
+    if (Object.keys(updates).length > 0) {
+      await prisma.member.update({ where: { id: user.member.id }, data: updates })
+    }
+  }
+
+  const otp = await generateOTP(phone)
+  if (!otp.success) {
+    return { error: "Could not send your verification code. Please try again." }
+  }
+
+  return { success: true }
+}
+
 export async function otpLoginAction(prevState: unknown, formData: FormData) {
-  const phone = formData.get("phone") as string
+  const phone = normalizePhone((formData.get("phone") as string) ?? "")
   const code = formData.get("code") as string
 
   try {
@@ -47,9 +98,18 @@ export async function otpLoginAction(prevState: unknown, formData: FormData) {
     throw e
   }
 
-  const user = await prisma.user.findFirst({ where: { phone: phone ?? undefined, role: { in: [Role.MEMBER, Role.CLAIMANT] } } })
-  const role = user?.role
-  const home = getRoleHome(role)
+  const user = await prisma.user.findFirst({
+    where: { phone: phone ?? undefined, role: { in: [Role.MEMBER, Role.CLAIMANT] } },
+    include: { member: { select: { id: true } } },
+  })
+
+  // Guarantee a complete, demo-ready account before landing on the dashboard.
+  if (user?.member?.id) {
+    const { ensureMemberDemoData } = await import("@/lib/members/provision")
+    await ensureMemberDemoData(user.member.id)
+  }
+
+  const home = getRoleHome(user?.role)
   redirect(home)
 }
 
