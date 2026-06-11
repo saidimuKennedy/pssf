@@ -71,7 +71,9 @@ export async function getCase(
 
   if (actorRole === Role.MEMBER) {
     const memberId = await getMemberIdForUser(actorId)
-    if (!memberId || caseRecord.member_id !== memberId) {
+    const fd = (caseRecord.form_data as Record<string, unknown> | null) ?? {}
+    const isDeathClaimant = fd.claimant_user_id === actorId
+    if (!isDeathClaimant && (!memberId || caseRecord.member_id !== memberId)) {
       throw new AuthError("NOT_FOUND", "Case not found or access denied")
     }
   } else if (actorRole === Role.CLAIMANT) {
@@ -109,7 +111,10 @@ export async function listCases(
   if (actorRole === Role.MEMBER) {
     const memberId = await getMemberIdForUser(actorId)
     if (!memberId) return { total: 0, page, limit, data: [] }
-    where.member_id = memberId
+    where.OR = [
+      { member_id: memberId },
+      { form_data: { path: ["claimant_user_id"], equals: actorId } },
+    ]
   } else if (actorRole === Role.CLAIMANT) {
     where.type = CaseType.DEATH_BENEFITS_CLAIM
     where.form_data = { path: ["claimant_user_id"], equals: actorId }

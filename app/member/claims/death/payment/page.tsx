@@ -18,7 +18,7 @@ export default function DeathPaymentPage() {
   useEffect(() => {
     if (!caseId) return
     fetch(`/api/cases/${caseId}`).then((r) => r.json()).then((d) => {
-      setClaimants((d.form_data as { claimants: DeathClaimant[] }).claimants ?? [])
+      setClaimants((d.form_data as { claimants?: DeathClaimant[] } | undefined)?.claimants ?? [])
     })
   }, [caseId])
 
@@ -52,7 +52,10 @@ export default function DeathPaymentPage() {
           <div><Label>M-Pesa (optional)</Label><Input value={c.mpesa_number ?? ""} onChange={(e) => update(i, { mpesa_number: e.target.value })} placeholder="+2547..." /></div>
         </div>
       ))}
-      <Button onClick={save} className="w-full bg-[#E11D48] text-white">Continue</Button>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => router.push(`/member/claims/death/option?case_id=${caseId}`)} className="flex-1">Back</Button>
+        <Button onClick={save} className="flex-1 bg-[#E11D48] text-white">Continue</Button>
+      </div>
     </div>
   )
 }

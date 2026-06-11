@@ -23,7 +23,7 @@ export const DeathClaimantSchema = z
       .string()
       .regex(/^[A-Z]\d{9}[A-Z]$/, "KRA PIN must be in format A000000000X")
       .optional(),
-    mobile_number: kenyanPhone,
+    mobile_number: kenyanPhone.or(z.literal("")).optional(),
     is_minor: z.boolean(),
     bank_account_number: z.string().optional(),
     bank_name: z.string().optional(),
@@ -40,12 +40,21 @@ export const DeathClaimantSchema = z
           path: ["birth_cert_number"],
         })
       }
-    } else if (!data.national_id?.trim() && !data.birth_cert_number?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "National ID or birth certificate is required",
-        path: ["national_id"],
-      })
+    } else {
+      if (!data.national_id?.trim() && !data.birth_cert_number?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "National ID or birth certificate is required",
+          path: ["national_id"],
+        })
+      }
+      if (!data.mobile_number?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Mobile number is required",
+          path: ["mobile_number"],
+        })
+      }
     }
   })
 

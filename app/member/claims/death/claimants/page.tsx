@@ -25,8 +25,8 @@ export default function DeathClaimantsPage() {
   useEffect(() => {
     if (!caseId) return
     fetch(`/api/cases/${caseId}`).then((r) => r.json()).then((d) => {
-      const fd = d.form_data as { claimants?: DeathClaimant[] }
-      if (fd.claimants?.length) setClaimants(fd.claimants)
+      const fd = d.form_data as { claimants?: DeathClaimant[] } | undefined
+      if (fd?.claimants?.length) setClaimants(fd.claimants)
     })
   }, [caseId])
 
@@ -64,20 +64,25 @@ export default function DeathClaimantsPage() {
           </div>
           <div><Label>Name</Label><Input value={c.name} onChange={(e) => update(i, { name: e.target.value })} /></div>
           <div><Label>Relationship</Label><Input value={c.relationship} onChange={(e) => update(i, { relationship: e.target.value })} /></div>
-          <div className="flex items-center gap-2"><Checkbox checked={c.is_minor} onCheckedChange={(v) => update(i, { is_minor: Boolean(v) })} id={`m${i}`} /><Label htmlFor={`m${i}`}>Minor</Label></div>
+          <div className="flex items-center gap-2"><Checkbox checked={c.is_minor} onCheckedChange={(v) => update(i, { is_minor: Boolean(v), ...(Boolean(v) ? { mobile_number: "" } : {}) })} id={`m${i}`} /><Label htmlFor={`m${i}`}>Minor</Label></div>
           {c.is_minor ? (
             <div><Label>Birth Cert Number</Label><Input value={c.birth_cert_number ?? ""} onChange={(e) => update(i, { birth_cert_number: e.target.value })} /></div>
           ) : (
             <div><Label>National ID</Label><Input value={c.national_id ?? ""} onChange={(e) => update(i, { national_id: e.target.value })} /></div>
           )}
-          <div><Label>Mobile</Label><Input value={c.mobile_number} onChange={(e) => update(i, { mobile_number: e.target.value })} /></div>
+          {!c.is_minor && (
+            <div><Label>Mobile</Label><Input value={c.mobile_number ?? ""} onChange={(e) => update(i, { mobile_number: e.target.value })} /></div>
+          )}
           <div><Label>KRA PIN (if applicable)</Label><Input value={c.kra_pin ?? ""} onChange={(e) => update(i, { kra_pin: e.target.value })} /></div>
         </div>
       ))}
       {claimants.length < 5 && (
         <Button variant="outline" onClick={() => setClaimants([...claimants, { ...empty }])}><Plus className="w-4 h-4 mr-2" />Add Claimant</Button>
       )}
-      <Button onClick={save} className="w-full bg-[#E11D48] text-white">Continue</Button>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => router.push(`/member/claims/death/details?case_id=${caseId}`)} className="flex-1">Back</Button>
+        <Button onClick={save} className="flex-1 bg-[#E11D48] text-white">Continue</Button>
+      </div>
     </div>
   )
 }

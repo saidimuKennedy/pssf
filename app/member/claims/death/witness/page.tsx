@@ -16,7 +16,7 @@ export default function DeathWitnessPage() {
   useEffect(() => {
     if (!caseId) return
     fetch(`/api/cases/${caseId}`).then((r) => r.json()).then((d) => {
-      const fd = d.form_data as Record<string, string>
+      const fd = (d.form_data ?? {}) as Record<string, string>
       setForm({
         witness_name: fd.witness_name ?? "",
         witness_id: fd.witness_id ?? "",
@@ -49,7 +49,10 @@ export default function DeathWitnessPage() {
         <div><Label>Signature (type full name) *</Label><Input value={form.witness_signature} onChange={(e) => setForm({ ...form, witness_signature: e.target.value })} /></div>
         <div><Label>Date *</Label><Input type="date" value={form.witness_date} onChange={(e) => setForm({ ...form, witness_date: e.target.value })} /></div>
       </div>
-      <Button onClick={save} className="w-full bg-[#E11D48] text-white">Continue</Button>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => router.push(`/member/claims/death/documents?case_id=${caseId}`)} className="flex-1">Back</Button>
+        <Button onClick={save} className="flex-1 bg-[#E11D48] text-white">Continue</Button>
+      </div>
     </div>
   )
 }

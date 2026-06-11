@@ -19,7 +19,7 @@ export default function DeathHomePage() {
   useEffect(() => {
     if (!caseId) return
     fetch(`/api/cases/${caseId}`).then((r) => r.json()).then((d) => {
-      const fd = d.form_data as Record<string, string>
+      const fd = (d.form_data ?? {}) as Record<string, string>
       setForm({
         county: fd.county ?? "", subcounty: fd.subcounty ?? "", location: fd.location ?? "",
         sublocation: fd.sublocation ?? "", village: fd.village ?? "", chief_name: fd.chief_name ?? "",
@@ -53,7 +53,10 @@ export default function DeathHomePage() {
         {field("county", "County")}{field("subcounty", "Subcounty")}{field("location", "Location")}
         {field("sublocation", "Sublocation")}{field("village", "Village")}{field("chief_name", "Chief's Name")}
       </div>
-      <Button onClick={save} className="w-full bg-[#E11D48] text-white">Continue</Button>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => router.push(`/member/claims/death/claimants?case_id=${caseId}`)} className="flex-1">Back</Button>
+        <Button onClick={save} className="flex-1 bg-[#E11D48] text-white">Continue</Button>
+      </div>
     </div>
   )
 }

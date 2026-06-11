@@ -13,7 +13,7 @@ export default function DeathPreviewPage() {
   const [fd, setFd] = useState<Record<string, unknown>>({})
 
   useEffect(() => {
-    if (caseId) fetch(`/api/cases/${caseId}`).then((r) => r.json()).then((d) => setFd(d.form_data as Record<string, unknown>))
+    if (caseId) fetch(`/api/cases/${caseId}`).then((r) => r.json()).then((d) => setFd((d.form_data ?? {}) as Record<string, unknown>))
   }, [caseId])
 
   if (!caseId) return null
@@ -31,7 +31,10 @@ export default function DeathPreviewPage() {
         <p><strong>Claimants:</strong> {claimants.map((c) => c.name).join(", ")}</p>
         <p><strong>Witness:</strong> {String(fd.witness_name)}</p>
       </div>
-      <Button onClick={() => router.push(`/member/claims/death/confirm?case_id=${caseId}`)} className="w-full bg-[#E11D48] text-white">Continue to Submit</Button>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => router.push(`/member/claims/death/declaration?case_id=${caseId}`)} className="flex-1">Back</Button>
+        <Button onClick={() => router.push(`/member/claims/death/confirm?case_id=${caseId}`)} className="flex-1 bg-[#E11D48] text-white">Continue to Submit</Button>
+      </div>
     </div>
   )
 }

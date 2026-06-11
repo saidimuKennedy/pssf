@@ -39,11 +39,12 @@ export async function uploadDocument(
   const memberId = await getMemberIdForUser(actorId)
   const employerId = await getEmployerIdForUser(actorId)
 
-  if (
-    (actorRole === Role.MEMBER || actorRole === Role.CLAIMANT) &&
-    caseRecord.member_id !== memberId
-  ) {
-    throw new AuthError("FORBIDDEN", "Cannot upload to this case")
+  if (actorRole === Role.MEMBER || actorRole === Role.CLAIMANT) {
+    const fd = (caseRecord.form_data as Record<string, unknown> | null) ?? {}
+    const isClaimantOfDeathCase = fd.claimant_user_id === actorId
+    if (!isClaimantOfDeathCase && caseRecord.member_id !== memberId) {
+      throw new AuthError("FORBIDDEN", "Cannot upload to this case")
+    }
   }
   if (actorRole === Role.EMPLOYER && caseRecord.employer_id !== employerId) {
     throw new AuthError("FORBIDDEN", "Cannot upload to this case")

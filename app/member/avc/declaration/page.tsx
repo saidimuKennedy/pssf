@@ -4,11 +4,11 @@ import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { StepIndicator } from "@/components/ui/step-indicator"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { SignaturePad } from "@/components/ui/signature-pad"
+import { JourneyOtpForm } from "@/components/journey/journey-otp-form"
 import { AVC_STEPS } from "@/lib/avc/journey"
 
 
@@ -18,7 +18,6 @@ export default function AVCDeclarationPage() {
   const caseId = searchParams.get("case_id")
 
   const [accepted, setAccepted] = useState(false)
-  const [otp, setOtp] = useState("")
   const [signatureData, setSignatureData] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -38,11 +37,6 @@ export default function AVCDeclarationPage() {
       setError("You must accept the statutory declaration to proceed.")
       return
     }
-    if (otp.length !== 6) {
-      setError("Please enter the 6-character verification code sent to your phone.")
-      return
-    }
-
 
     setError(null)
     setLoading(true)
@@ -121,43 +115,33 @@ export default function AVCDeclarationPage() {
         <SignaturePad onChange={setSignatureData} />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="otp">Verification Code</Label>
-        <Input
-          id="otp"
-          type="text"
-          maxLength={6}
-          placeholder="ABC123"
-          className="text-center text-xl tracking-widest font-mono"
-          value={otp}
-          autoComplete="one-time-code"
-          onChange={(e) => setOtp(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))}
-        />
-      </div>
-
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      <div className="flex gap-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => router.push(`/member/avc/action?case_id=${caseId}`)}
-        >
-          Back
-        </Button>
-        <Button
-          type="button"
-          disabled={loading || !accepted || otp.length !== 6}
-          onClick={handleContinue}
-          className="flex-1 bg-[#16A34A] hover:bg-[#145f3a] text-white"
-        >
-          {loading ? "Verifying…" : "Verify & Continue"}
-        </Button>
-      </div>
+      {!accepted && (
+        <p className="text-sm text-gray-500">
+          Accept the declaration above to enable verification.
+        </p>
+      )}
+
+      <JourneyOtpForm
+        onVerified={handleContinue}
+        submitLabel="Verify & Continue"
+        loading={loading}
+        disabled={!accepted}
+      />
+
+      <Button
+        type="button"
+        variant="outline"
+        disabled={loading}
+        onClick={() => router.push(`/member/avc/action?case_id=${caseId}`)}
+      >
+        Back
+      </Button>
     </div>
   )
 }

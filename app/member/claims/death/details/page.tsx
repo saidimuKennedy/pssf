@@ -19,8 +19,8 @@ export default function DeathDetailsPage() {
     const raw = sessionStorage.getItem("death_prefill")
     if (raw) setPrefill(JSON.parse(raw))
     if (caseId) fetch(`/api/cases/${caseId}`).then((r) => r.json()).then((d) => {
-      const fd = d.form_data as Record<string, string>
-      if (fd.date_of_death) setDateOfDeath(fd.date_of_death)
+      const fd = d.form_data as Record<string, string> | undefined
+      if (fd?.date_of_death) setDateOfDeath(fd.date_of_death)
     })
   }, [caseId])
 
@@ -50,7 +50,10 @@ export default function DeathDetailsPage() {
         <LockedField label="KRA PIN" value={prefill.kra_pin} />
       </div>
       <div><Label>Date of Death *</Label><Input type="date" value={dateOfDeath} onChange={(e) => setDateOfDeath(e.target.value)} /></div>
-      <Button onClick={save} disabled={!dateOfDeath} className="w-full bg-[#E11D48] text-white">Continue</Button>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => router.push(`/member/claims/death?case_id=${caseId}`)} className="flex-1">Back</Button>
+        <Button onClick={save} disabled={!dateOfDeath} className="flex-1 bg-[#E11D48] text-white">Continue</Button>
+      </div>
     </div>
   )
 }

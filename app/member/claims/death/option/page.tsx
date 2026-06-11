@@ -18,9 +18,9 @@ export default function DeathOptionPage() {
   useEffect(() => {
     if (!caseId) return
     fetch(`/api/cases/${caseId}`).then((r) => r.json()).then((d) => {
-      const fd = d.form_data as Record<string, unknown>
-      setHasMinor(Boolean(fd.has_minor_claimant))
-      if (fd.benefit_option) setSelection(String(fd.benefit_option))
+      const fd = d.form_data as Record<string, unknown> | undefined
+      setHasMinor(Boolean(fd?.has_minor_claimant))
+      if (fd?.benefit_option) setSelection(String(fd.benefit_option))
     })
   }, [caseId])
 
@@ -54,7 +54,10 @@ export default function DeathOptionPage() {
           </div>
         ))}
       </RadioGroup>
-      <Button onClick={save} disabled={!selection} className="w-full bg-[#E11D48] text-white">Continue</Button>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => router.push(`/member/claims/death/home?case_id=${caseId}`)} className="flex-1">Back</Button>
+        <Button onClick={save} disabled={!selection} className="flex-1 bg-[#E11D48] text-white">Continue</Button>
+      </div>
     </div>
   )
 }

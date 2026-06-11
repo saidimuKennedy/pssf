@@ -567,7 +567,19 @@ function SignUpForm() {
                   </div>
 
                   {activateState?.error && (
-                    <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 p-2.5 rounded-lg">{activateState.error}</p>
+                    activateState.error.includes("already linked") ? (
+                      <div className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 p-3 rounded-lg space-y-2">
+                        <p>{activateState.error}</p>
+                        <a
+                          href={`/login${phone ? `?phone=${encodeURIComponent(phone)}` : ""}`}
+                          className="inline-block font-bold text-[#1A7A4A] hover:underline"
+                        >
+                          Sign in to your existing account →
+                        </a>
+                      </div>
+                    ) : (
+                      <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 p-2.5 rounded-lg">{activateState.error}</p>
+                    )
                   )}
 
                   <div className="flex gap-3 pt-2">
@@ -581,8 +593,8 @@ function SignUpForm() {
                     </Button>
                     <Button
                       type="submit"
-                      disabled={activatePending}
-                      className="flex-1 bg-[#0D2137] hover:bg-[#12304b] text-white rounded-full h-11 text-xs font-bold cursor-pointer transition-all active:scale-98 shadow-md"
+                      disabled={activatePending || activateState?.error?.includes("already linked")}
+                      className="flex-1 bg-[#0D2137] hover:bg-[#12304b] text-white rounded-full h-11 text-xs font-bold cursor-pointer transition-all active:scale-98 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {activatePending ? "Activating account…" : "Confirm Activation"}
                     </Button>

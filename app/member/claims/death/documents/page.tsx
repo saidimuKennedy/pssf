@@ -26,7 +26,7 @@ export default function DeathDocumentsPage() {
   useEffect(() => {
     if (!caseId) return
     fetch(`/api/cases/${caseId}`).then((r) => r.json()).then((d) => {
-      setFormData(d.form_data as Record<string, unknown>)
+      setFormData((d.form_data ?? {}) as Record<string, unknown>)
       const m: Record<string, string> = {}
       for (const doc of d.documents ?? []) m[doc.document_type] = doc.status
       setDocs(m)
@@ -45,7 +45,10 @@ export default function DeathDocumentsPage() {
           <FileUploadSlot key={req.type} documentType={req.type} label={LABELS[req.type] ?? req.type} required={req.required || Boolean(req.condition)} caseId={caseId} currentStatus={(docs[req.type] as "PENDING") ?? "PENDING"} onUploadSuccess={(s) => setDocs({ ...docs, [req.type]: s })} />
         ))}
       </div>
-      <Button onClick={() => router.push(`/member/claims/death/witness?case_id=${caseId}`)} className="w-full bg-[#E11D48] text-white">Continue</Button>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={() => router.push(`/member/claims/death/payment?case_id=${caseId}`)} className="flex-1">Back</Button>
+        <Button onClick={() => router.push(`/member/claims/death/witness?case_id=${caseId}`)} className="flex-1 bg-[#E11D48] text-white">Continue</Button>
+      </div>
     </div>
   )
 }
