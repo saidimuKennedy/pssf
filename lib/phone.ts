@@ -25,3 +25,17 @@ export function extractPhoneParam(raw: string | null | undefined): string {
   const digits = cleaned.replace(/\+/g, "")
   return digits ? `${plus}${digits}` : ""
 }
+
+// Canonical phone format stored in the DB and used for lookups: `+254XXXXXXXXX`.
+// Accepts 0…, 254…, +254…, or bare 7…/1… and returns the +254 form.
+// Storing inconsistently (e.g. "254…" from a webview URL) breaks login, which
+// always normalises before looking the user up.
+export function normalizePhone(raw: string | null | undefined): string {
+  if (!raw) return ""
+  let n = raw.trim().replace(/[^\d+]/g, "")
+  if (n.startsWith("+")) return n
+  if (n.startsWith("0")) return "+254" + n.slice(1)
+  if (n.startsWith("254")) return "+" + n
+  if (/^[17]\d{8}$/.test(n)) return "+254" + n // bare 7XXXXXXXX / 1XXXXXXXX
+  return n ? "+" + n : ""
+}

@@ -5,6 +5,7 @@ import { SignUpSchema } from "@/lib/validations/auth"
 import { lookupById } from "@/lib/kra/members"
 import { ensureMemberDemoData, getDefaultEmployer } from "@/lib/members/provision"
 import { sendWhatsApp } from "@/lib/notifications/channels/whatsapp"
+import { normalizePhone } from "@/lib/phone"
 import bcrypt from "bcryptjs"
 import { generateOTP, validateOTP } from "@/lib/kra/otp"
 import { NotificationChannel, Role } from "@prisma/client"
@@ -116,7 +117,9 @@ export async function sendSignUpOtpAction(prevState: unknown, formData: FormData
 }
 
 export async function activateAccountAction(prevState: unknown, formData: FormData) {
-  const phone = formData.get("phone") as string
+  // Normalise to +254… so the stored value matches what login looks up.
+  // (Webview links pass "254…" without a +, which otherwise breaks login.)
+  const phone = normalizePhone(formData.get("phone") as string)
   const code = formData.get("code") as string
   const national_id = formData.get("national_id") as string
   const full_name = formData.get("full_name") as string
