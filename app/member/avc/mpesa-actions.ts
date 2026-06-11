@@ -9,6 +9,26 @@ export interface StartStkResult {
   message: string
 }
 
+// Daraja rejects non-https / localhost CallBackURLs ("Invalid CallBackURL").
+// Resolve to a valid PUBLIC https URL, ignoring leftover localhost/http values
+// (e.g. a Vercel NEXT_PUBLIC_APP_URL still set to http://localhost:3000).
+function resolveCallbackUrl(): string | null {
+  const PROD_DEFAULT = "https://pssf.vercel.app/api/mpesa/callback"
+
+  const isPublicHttps = (u: string) =>
+    /^https:\/\//i.test(u) && !/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(u)
+
+  const explicit = process.env.MPESA_CALLBACK_URL?.trim()
+  if (explicit) return isPublicHttps(explicit) ? explicit : null
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim()
+  if (appUrl && isPublicHttps(appUrl)) {
+    return `${appUrl.replace(/\/+$/, "")}/api/mpesa/callback`
+  }
+
+  return PROD_DEFAULT
+}
+
 /**
  * Fire an M-Pesa STK push to collect an AVC mobile-wallet contribution.
  * Amount and phone are read server-side from the case (never trust the client).
@@ -35,18 +55,27 @@ export async function startAvcStkPush(caseId: string): Promise<StartStkResult> {
     return { success: false, message: "No contribution amount to collect." }
   }
 
-  // MPESA_CALLBACK_URL lets us point Safaricom at an ngrok tunnel for local
-  // testing; otherwise fall back to the deployed app.
-  const callbackUrl =
-    process.env.MPESA_CALLBACK_URL ??
-    `${process.env.NEXT_PUBLIC_APP_URL ?? "https://pssf.vercel.app"}/api/mpesa/callback`
+  // SAFETY: in sandbox, only ever charge KES 1 — sandbox STK to a real
+  // registered line CAN move real money. Never push the full amount in test.
+  const isSandbox = process.env.MPESA_ENVIRONMENT !== "production"
+  const chargeAmount = isSandbox ? 1 : amount
 
-  console.log(`[avc/stk] push → phone=${phone} amount=${amount} callback=${callbackUrl}`)
+  const callbackUrl = resolveCallbackUrl()
+  if (!callbackUrl) {
+    return {
+      success: false,
+      message: "Server callback URL is not a valid public https URL. Set MPESA_CALLBACK_URL.",
+    }
+  }
+
+  console.log(
+    `[avc/stk] push → phone=${phone} intended=${amount} charge=${chargeAmount} sandbox=${isSandbox} callback=${callbackUrl}`
+  )
 
   try {
     const res = await initiateStkPush({
       phoneNumber: phone,
-      amount,
+      amount: chargeAmount,
       accountReference: record.reference?.slice(0, 12) || "PSSF-AVC",
       transactionDesc: "AVC",
       callbackUrl,
@@ -64,6 +93,8 @@ export async function startAvcStkPush(caseId: string): Promise<StartStkResult> {
             merchant_request_id: res.MerchantRequestID,
             status: "PENDING",
             amount,
+            charged: chargeAmount,
+            sandbox: isSandbox,
             phone,
             updated_at: new Date().toISOString(),
           },

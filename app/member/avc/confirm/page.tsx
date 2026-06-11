@@ -44,6 +44,7 @@ export default function AVCConfirmPage() {
   }, [caseId])
 
   const isMobileWallet = method === "MOBILE_WALLET" && amount > 0
+  const isSandbox = process.env.NEXT_PUBLIC_MPESA_ENVIRONMENT !== "production"
 
   if (!caseId) {
     return (
