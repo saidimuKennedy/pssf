@@ -14,7 +14,14 @@
  *   MPESA_ENVIRONMENT — "sandbox" | "production"
  *
  * Server-only: imported exclusively from "use server" action modules.
+ *
+ * Token caching: Safaricom issues tokens valid ~3600s and aggressively throttles
+ * the OAuth endpoint. On serverless (Vercel), module-level variables are lost on
+ * cold start. We use a two-layer cache: L1 in-memory (reused within the same
+ * function instance) + L2 in the database (shared across all instances/cold starts).
  */
+
+import { prisma } from "@/lib/db"
 
 const MPESA_BASE_URL =
   process.env.MPESA_ENVIRONMENT === "production"
@@ -77,13 +84,32 @@ function stkPassword(timestamp: string): string {
   return Buffer.from(`${shortcode}${passkey}${timestamp}`).toString("base64")
 }
 
-// Cache the OAuth token (valid ~3600s). Daraja's sandbox returns 400 if you
-// request tokens too frequently — and we'd otherwise fetch one per push + poll.
-let cachedToken: { value: string; expiresAt: number } | null = null
+const DB_TOKEN_KEY = "mpesa_access_token"
+
+// L1: in-memory cache — reused within the same function instance lifetime.
+let memToken: { value: string; expiresAt: number } | null = null
 
 async function getAccessToken(): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
-    return cachedToken.value
+  const now = Date.now()
+  // 60s buffer so we never hand a nearly-expired token to Daraja.
+  const validUntil = now + 60_000
+
+  if (memToken && memToken.expiresAt > validUntil) {
+    return memToken.value
+  }
+
+  // L2: DB cache — shared across all serverless instances / cold starts.
+  try {
+    const row = await prisma.systemConfig.findUnique({ where: { key: DB_TOKEN_KEY } })
+    if (row) {
+      const parsed = JSON.parse(row.value) as { value: string; expiresAt: number }
+      if (parsed.expiresAt > validUntil) {
+        memToken = parsed
+        return parsed.value
+      }
+    }
+  } catch {
+    // DB read failure — fall through and fetch a fresh token.
   }
 
   const consumerKey = process.env.MPESA_CONSUMER_KEY
@@ -113,8 +139,19 @@ async function getAccessToken(): Promise<string> {
   }
   const data: AccessTokenResponse = await res.json()
   const ttlMs = (parseInt(data.expires_in, 10) || 3599) * 1000
-  cachedToken = { value: data.access_token, expiresAt: Date.now() + ttlMs }
-  return data.access_token
+  const entry = { value: data.access_token, expiresAt: now + ttlMs }
+  memToken = entry
+
+  // Persist to DB so the next cold-start instance reuses this token.
+  prisma.systemConfig
+    .upsert({
+      where: { key: DB_TOKEN_KEY },
+      update: { value: JSON.stringify(entry) },
+      create: { key: DB_TOKEN_KEY, value: JSON.stringify(entry) },
+    })
+    .catch((err) => console.warn("[daraja] failed to persist token to DB:", err))
+
+  return entry.value
 }
 
 /**
