@@ -115,6 +115,11 @@ const WHATSAPP_TEMPLATES: Record<string, (vars: Variables) => string> = {
       "Hello [full_name], your PSSF contribution statement for [period_from] to [period_to] is ready. Your total balance is [total_balance]. Log in to the PSSF portal to view the full statement.",
       v
     ),
+  tpl_welcome_wa: (v) =>
+    sub(
+      "Hello [first_name], welcome to the PSSF Smart Self-Service Platform! Your account has been activated successfully. You can now login.",
+      v
+    ),
 }
 
 const EMAIL_SUBJECTS: Record<string, (vars: Variables) => string> = {
@@ -203,6 +208,13 @@ interface MetaTemplateEntry {
 }
 
 export const WA_META_TEMPLATES: Record<string, MetaTemplateEntry> = {
+  tpl_welcome_wa: {
+    name: "pssf_welcome",
+    language: "en_US",
+    components: (v) => [
+      { type: "body", parameters: [{ type: "text", text: v.first_name ?? "" }] },
+    ],
+  },
   tpl_case_submitted_wa: {
     name: "pssf_case_submitted",
     language: "en_US",

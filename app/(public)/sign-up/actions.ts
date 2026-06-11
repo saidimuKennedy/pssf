@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db"
 import { SignUpSchema } from "@/lib/validations/auth"
 import { lookupById } from "@/lib/kra/members"
 import { ensureMemberDemoData, getDefaultEmployer } from "@/lib/members/provision"
+import { sendWhatsApp } from "@/lib/notifications/channels/whatsapp"
 import bcrypt from "bcryptjs"
 import { generateOTP, validateOTP } from "@/lib/kra/otp"
 import { NotificationChannel, Role } from "@prisma/client"
@@ -281,6 +282,19 @@ export async function activateAccountAction(prevState: unknown, formData: FormDa
   // Guarantee a complete, demo-ready account: full profile + contributions +
   // beneficiaries. Idempotent, so existing members only get their gaps filled.
   await ensureMemberDemoData(memberId)
+
+  // Welcome the member over WhatsApp via the approved `pssf_welcome` template.
+  // Failure-isolated so it never blocks activation.
+  try {
+    const firstName = full_name.trim().split(/\s+/)[0] || "there"
+    await sendWhatsApp({
+      recipient_phone: phone,
+      template_ref: "tpl_welcome_wa",
+      variables: { first_name: firstName },
+    })
+  } catch (err) {
+    console.error("[activate] WhatsApp welcome failed:", err)
+  }
 
   return { success: true, registered: true }
 }

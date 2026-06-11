@@ -19,16 +19,18 @@ function normalizePhone(raw: string): string {
 }
 
 export async function requestOtpAction(prevState: unknown, formData: FormData) {
-  const parsed = RequestOtpSchema.safeParse({ phone: formData.get("phone") })
+  // Normalise first (e.g. 0726898688 → +254726898688), THEN validate — otherwise
+  // a perfectly valid local-format number is rejected before we ever fix it up.
+  const phone = normalizePhone((formData.get("phone") as string) ?? "")
+  const parsed = RequestOtpSchema.safeParse({ phone })
   if (!parsed.success) {
     return { error: parsed.error.flatten().fieldErrors.phone?.[0] ?? "Invalid phone number" }
   }
 
-  const phone = normalizePhone(parsed.data.phone ?? "")
-  if (!phone) return { error: "Phone number is required." }
-
   const user = await prisma.user.findFirst({ where: { phone, role: { in: [Role.MEMBER, Role.CLAIMANT] } } })
-  if (!user) return { error: "No account found for this phone number. Please sign up first." }
+  // New member: don't dead-end on login — send them to activation with the
+  // number prefilled. The page redirects on this flag.
+  if (!user) return { notRegistered: true, phone }
   if (!user.is_active) return { error: "Account is disabled. Contact support." }
 
   return { success: true, phone }

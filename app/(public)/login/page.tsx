@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useActionState, useEffect, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,6 +12,7 @@ import Link from "next/link"
 import { Lock, Smartphone, ShieldCheck, ArrowRight, ArrowLeft, IdCard } from "lucide-react"
 
 function LoginForm() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const phoneFromUrl = extractPhoneParam(searchParams.get("phone"))
 
@@ -27,8 +28,14 @@ function LoginForm() {
   const [otpLoginState, submitLogin, otpLoginPending] = useActionState(otpLoginAction, null)
 
   useEffect(() => {
-    if (otpRequestState?.success) setStep("identity")
-  }, [otpRequestState])
+    if (otpRequestState?.success) {
+      setStep("identity")
+    } else if (otpRequestState?.notRegistered) {
+      // Not a member yet — send them to activation with the number prefilled.
+      const num = otpRequestState.phone ?? phone
+      router.push(`/sign-up?phone=${encodeURIComponent(num)}`)
+    }
+  }, [otpRequestState, router, phone])
 
   useEffect(() => {
     if (identityState?.success) {

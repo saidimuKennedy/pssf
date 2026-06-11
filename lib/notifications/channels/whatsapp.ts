@@ -56,3 +56,41 @@ export async function sendWhatsApp(payload: CRMPayload): Promise<void> {
     throw new Error(`Chatnation Meta proxy responded with ${res.status}: ${await res.text()}`)
   }
 }
+
+// Sends a free-form WhatsApp text (no pre-approved template needed).
+// Only deliverable inside an open 24-hour customer-service window — e.g. right
+// after the member interacts via the WhatsApp webview (activation/login).
+export async function sendWhatsAppText(recipientPhone: string, message: string): Promise<void> {
+  if (process.env.PSSF_MOCK_NOTIFICATIONS === "true") {
+    console.log("[MOCK WhatsApp text]", { to: recipientPhone, message })
+    return
+  }
+
+  const apiUrl = process.env.CHATNATION_API_URL
+  const phoneNumberId = process.env.CHATNATION_WA_PHONE_NUMBER_ID
+  const accessToken = process.env.CHATNATION_WA_ACCESS_TOKEN
+  if (!apiUrl || !phoneNumberId || !accessToken) {
+    throw new Error("CHATNATION_API_URL, CHATNATION_WA_PHONE_NUMBER_ID, or CHATNATION_WA_ACCESS_TOKEN not configured")
+  }
+
+  const body = {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: recipientPhone,
+    type: "text",
+    text: { preview_url: false, body: message },
+  }
+
+  const res = await fetch(`${apiUrl}/api/meta/v21.0/${phoneNumberId}/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    throw new Error(`Chatnation Meta proxy responded with ${res.status}: ${await res.text()}`)
+  }
+}
