@@ -35,7 +35,13 @@ export async function startAvcStkPush(caseId: string): Promise<StartStkResult> {
     return { success: false, message: "No contribution amount to collect." }
   }
 
-  const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://pssf.vercel.app"}/api/mpesa/callback`
+  // MPESA_CALLBACK_URL lets us point Safaricom at an ngrok tunnel for local
+  // testing; otherwise fall back to the deployed app.
+  const callbackUrl =
+    process.env.MPESA_CALLBACK_URL ??
+    `${process.env.NEXT_PUBLIC_APP_URL ?? "https://pssf.vercel.app"}/api/mpesa/callback`
+
+  console.log(`[avc/stk] push → phone=${phone} amount=${amount} callback=${callbackUrl}`)
 
   try {
     const res = await initiateStkPush({
@@ -45,6 +51,7 @@ export async function startAvcStkPush(caseId: string): Promise<StartStkResult> {
       transactionDesc: "AVC",
       callbackUrl,
     })
+    console.log(`[avc/stk] accepted CheckoutRequestID=${res.CheckoutRequestID}`)
 
     // Persist the pending payment so the callback can find this case.
     await prisma.case.update({
@@ -70,6 +77,7 @@ export async function startAvcStkPush(caseId: string): Promise<StartStkResult> {
       message: res.CustomerMessage || "Check your phone and enter your M-Pesa PIN.",
     }
   } catch (err) {
+    console.error("[avc/stk] push failed:", err)
     return {
       success: false,
       message: err instanceof Error ? err.message : "Failed to initiate M-Pesa payment.",

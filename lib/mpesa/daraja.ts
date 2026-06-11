@@ -99,6 +99,14 @@ async function getAccessToken(): Promise<string> {
   )
   if (!res.ok) {
     const detail = await res.text().catch(() => "")
+    // Safaricom throttles its OAuth endpoint: rapid calls return 400 (empty
+    // body), then 403 (WAF block page). Surface a back-off message instead of
+    // a confusing credential error so the user stops hammering.
+    if (res.status === 400 || res.status === 403 || res.status === 429) {
+      throw new Error(
+        "M-Pesa is temporarily rate-limited by Safaricom (too many requests). Wait 1–2 minutes, then try once."
+      )
+    }
     throw new Error(
       `Failed to get M-Pesa access token: ${res.status} ${res.statusText}${detail ? ` — ${detail.slice(0, 120)}` : ""}`
     )
@@ -151,9 +159,23 @@ export async function initiateStkPush(args: {
     body: JSON.stringify(requestBody),
   })
 
-  const data: STKPushResponse = await res.json()
+  const raw = await res.text()
+  let data: STKPushResponse & { errorCode?: string; errorMessage?: string; fault?: unknown }
+  try {
+    data = JSON.parse(raw)
+  } catch {
+    console.error(`[daraja] STK push non-JSON ${res.status}:`, raw.slice(0, 300))
+    throw new Error(`STK Push failed: ${res.status} ${res.statusText} — ${raw.slice(0, 120)}`)
+  }
+
   if (!res.ok || data.ResponseCode !== "0") {
-    throw new Error(`STK Push failed: ${data.ResponseDescription || res.statusText}`)
+    console.error(`[daraja] STK push rejected ${res.status}:`, JSON.stringify(data))
+    const reason =
+      data.ResponseDescription ||
+      data.errorMessage ||
+      (data.fault ? JSON.stringify(data.fault) : "") ||
+      res.statusText
+    throw new Error(`STK Push failed: ${reason}`)
   }
   return data
 }

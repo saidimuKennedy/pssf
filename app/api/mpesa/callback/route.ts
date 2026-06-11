@@ -36,6 +36,9 @@ export async function POST(req: NextRequest) {
   }
 
   const cb = body?.Body?.stkCallback
+  console.log(
+    `[mpesa/callback] received CheckoutRequestID=${cb?.CheckoutRequestID} ResultCode=${cb?.ResultCode} ResultDesc=${cb?.ResultDesc}`
+  )
   if (!cb?.CheckoutRequestID) return ack
 
   // Pull receipt/amount/phone from the metadata when the payment succeeded.
